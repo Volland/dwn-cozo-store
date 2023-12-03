@@ -15,7 +15,7 @@ export class EventLogCozo implements EventLog {
              =>
              counter: Int
           }`)
-          await this.runQuery(`?[table,counter] <-[['event_log', 1]] :put data_store_sequence{table => counter} `)
+          await this.runQuery(`?[table,counter] <-[['event_log', 1]] :put event_log_sequence{table => counter} `)
         }
         if (!existingRelations.includes('event_log')) {
             await this.runOperation(`
@@ -148,8 +148,8 @@ export class EventLogCozo implements EventLog {
       }
       private async getSequence(): Promise<number> {
         const data = await this.runQuery(
-            `{?[table,counter, prev] := *data_store_sequence[table, prev],table='event_log',counter=prev+1 :put data_store_sequence{table => counter}} 
-            {?[counter] := *data_store_sequence[$table,counter]}`
+            `{?[table,counter, prev] := *event_log_sequence[table, prev],table='event_log',counter=prev+1 :put event_log_sequence{table => counter}} 
+            {?[counter] := *event_log_sequence['event_log',counter]}`
             )
         return data.rows[0][0]
       }

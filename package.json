@@ -23,6 +23,7 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "devDependencies": {
+    "@types/node": "^20.10.2",
     "chai": "^4.3.10",
     "chai-as-promised": "^7.1.1",
     "esbuild": "^0.19.8",

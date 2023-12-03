@@ -1,16 +1,35 @@
-export function sanitizeRecords(records: Record<string, string | number>) {
-  for (let key in records) {
-    let value = records[key];
-    records[key] = sanitizedValue(value);
+export function sanitizeRecords(records: Record<string, string | number | boolean>, indexes: Record<string, string>): Record<string, string | number>  {
+
+  const result = {}
+  Object.entries(records).forEach(([key, value]) => {
+    if (!indexes[key]) return;
+    result[key] = sanitizedValue(value);
   }
+  )
+  return result;
 }
 
-export function sanitizedValue(value: any): string | number {
+export function sanitizedValue(value: any): string | number | boolean {
   if (typeof value === 'string') {
-    return value;
-  } else if (typeof value === 'number') {
+    return quote(value, false);
+  } else if (typeof value === 'number' || typeof value === 'boolean') {
     return value;
   } else {
-    return JSON.stringify(value);
+    return quote(JSON.stringify(value), false);
   }
+}
+export function quote(str: string, wrapInQuote: boolean = true): string {
+  // Escape special characters
+  if (!str) return  wrapInQuote ? "''" : '';
+
+  const escapedStr = `${str}`
+    .replace(/\\/g, '\\\\') // Escape backslashes
+    .replace(/"/g, '\\"') // Escape double quotes
+    .replace(/'/g, "\\'") // Escape single quotes
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t') // Escape tabs
+
+  // Return the quoted string
+  return wrapInQuote ? `'${escapedStr}'` : escapedStr
 }
