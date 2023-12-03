@@ -20,7 +20,7 @@
     "build:cjs": "npm run build:esm && node build/create-cjs-bundle.cjs && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
     "lint": "eslint . --ext .ts --max-warnings 0",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint:fix": "eslint . --ext .ts --fix"
   },
   "devDependencies": {
     "chai": "^4.3.10",

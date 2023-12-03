@@ -237,18 +237,11 @@ export class DataStoreCozo implements DataStore {
         return data.rows.length === 0
       }
       private async getSequence(table: string): Promise<number> {
-        const data = await this.runQuery(`?[table,counter, prev] := *data_store_sequence[table, prev],table=$table,counter=prev+1 :put *data_store_sequence{table => counter}`,{
-            table
-        })
-        //NOTE: DRAGGONS AHEAD
-        if (DataStoreCozo.isSuccessful(data)) {
-          throw new Error(`Failed to get sequence for table: ${table}`)
-        }
-        const countData = await this.runQuery(`?[counter] := data_store_sequence[$table,counter] `, {
-            table
-        
-        })
-        return countData.rows[0][0]
+        const data = await this.runQuery(
+            `{?[table,counter, prev] := *data_store_sequence[table, prev],table=$table,counter=prev+1 :put data_store_sequence{table => counter}} 
+            {?[counter] := *data_store_sequence[$table,counter]}`,
+            {table})
+        return data.rows[0][0]
       }
     
 }
