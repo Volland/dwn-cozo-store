@@ -1,5 +1,5 @@
 import { Event, EventLog, GetEventsOptions } from '@tbd54566975/dwn-sdk-js';
-import { CozoResult, ICozoDb } from './types.ts';
+import { CozoResult, ICozoDb } from './types.js';
 
 export class EventLogCozo implements EventLog {
   #db: ICozoDb;

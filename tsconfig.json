@@ -12,8 +12,6 @@
       "outDir": "./dist/esm",
       "sourceMap": true,
       "moduleResolution": "NodeNext",
-      "emitDeclarationOnly": true,
-      "allowImportingTsExtensions": true,
       "declarationDir": "./dist/types",
       "resolveJsonModule": true,
       "esModuleInterop": true,

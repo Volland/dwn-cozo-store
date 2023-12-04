@@ -1,6 +1,6 @@
 import { DwnInterfaceName, DwnMethodName, Filter, GenericMessage, Message, MessageSort, MessageStore, MessageStoreOptions, Pagination, executeUnlessAborted } from '@tbd54566975/dwn-sdk-js';
-import { CozoResult, ICozoDb } from './types.ts';
-import { quote, sanitizeRecords, sanitizedValue } from './utils/sanitize.ts';
+import { CozoResult, ICozoDb } from './types.js';
+import { quote, sanitizeRecords, sanitizedValue } from './utils/sanitize.js';
 import { sha256 } from 'multiformats/hashes/sha2';
 import * as block from 'multiformats/block';
 import * as cbor from '@ipld/dag-cbor';

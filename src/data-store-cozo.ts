@@ -1,5 +1,5 @@
 import { AssociateResult, Cid, DataStore, DataStream, GetResult, PutResult } from '@tbd54566975/dwn-sdk-js';
-import { ICozoDb, CozoResult } from './types.ts';
+import { ICozoDb, CozoResult } from './types.js';
 import { Readable } from 'readable-stream';
 
 export class DataStoreCozo implements DataStore {
