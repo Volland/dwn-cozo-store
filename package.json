@@ -21,7 +21,8 @@
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
     "lint": "eslint . --ext .ts --max-warnings 0",
     "test": "rimraf compiled && tsc -p tests/tsconfig.json && mocha",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint:fix": "eslint . --ext .ts --fix",
+    "clean": "rimraf dist compiled"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
