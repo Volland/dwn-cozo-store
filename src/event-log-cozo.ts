@@ -92,7 +92,7 @@ export class EventLogCozo implements EventLog {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const executeQuery = async (): Promise<any> => {
       try {
-        const data = await this.db.run(query, params);
+        const data = await this.#db.run(query, params);
         if (print) {
           console.debug('COZO QUERY: ', query, params);
           console.debug('COZO RESULT', data);

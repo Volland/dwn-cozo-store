@@ -1,4 +1,4 @@
-import { DwnInterfaceName, DwnMethodName, Filter, GenericMessage, MessageSort, MessageStore, MessageStoreOptions, Pagination, executeUnlessAborted } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterfaceName, DwnMethodName, Filter, GenericMessage, Message, MessageSort, MessageStore, MessageStoreOptions, Pagination, executeUnlessAborted } from '@tbd54566975/dwn-sdk-js';
 import { CozoResult, ICozoDb } from './types.ts';
 import { quote, sanitizeRecords, sanitizedValue } from './utils/sanitize.ts';
 import { sha256 } from 'multiformats/hashes/sha2';
@@ -105,7 +105,7 @@ export class MessageStoreCozo implements MessageStore {
     return Promise.resolve();
   }
   close(): Promise<void> {
-    this.#db.close();
+    this.#db!.close!();
     return Promise.resolve();
   }
   async put(tenant: string, message: GenericMessage, indexes: { [key: string]: string | boolean; }, options?: MessageStoreOptions | undefined): Promise<void> {
@@ -210,7 +210,7 @@ export class MessageStoreCozo implements MessageStore {
             andConditions.push(`${column} '<=' ${sanitizedValue(value.gt)}`);
           }
         } else { // EqualFilter
-          andConditions.push(`${column} '=' ${sanitizedValue(value.gt)}`);
+          andConditions.push(`${column} '=' ${sanitizedValue(value)}`);
         }
       });
       filterConditions.push( ` and(${andConditions.join(',')}) `);
@@ -267,7 +267,7 @@ export class MessageStoreCozo implements MessageStore {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const executeQuery = async (): Promise<any> => {
       try {
-        const data = await this.db.run(query, params);
+        const data = await this.#db.run(query, params);
         if (print) {
           console.debug('COZO QUERY: ', query, params);
           console.debug('COZO RESULT', data);
@@ -297,7 +297,7 @@ export class MessageStoreCozo implements MessageStore {
   }
   private async runOperation(query: string, params?: Record<string, any>) {
     const data = await this.runQuery(query, params);
-    if (!EventLogCozo.isSuccessful(data)) {
+    if (!MessageStoreCozo.isSuccessful(data)) {
       throw new Error(`Failed to run operation: ${query}`);
     }
   }

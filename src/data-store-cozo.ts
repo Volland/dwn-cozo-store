@@ -51,7 +51,9 @@ export class DataStoreCozo implements DataStore {
 
   }
   close(): Promise<void> {
-    this.#db.close();
+    if (this.#db && this.#db.close) {
+      this.#db.close();
+    }
     return Promise.resolve();
   }
   async put(tenant: string, messageCid: string, dataCid: string, dataStream: Readable): Promise<PutResult> {
@@ -182,7 +184,7 @@ export class DataStoreCozo implements DataStore {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const executeQuery = async (): Promise<any> => {
       try {
-        const data = await this.db.run(query, params);
+        const data = await this.#db.run(query, params);
         if (print) {
           console.debug('COZO QUERY: ', query, params);
           console.debug('COZO RESULT', data);
@@ -212,7 +214,7 @@ export class DataStoreCozo implements DataStore {
   }
   private async runOperation(query: string, params?: Record<string, any>) {
     const data = await this.runQuery(query, params);
-    if (!Graph.isSuccessful(data)) {
+    if (!DataStoreCozo.isSuccessful(data)) {
       throw new Error(`Failed to run operation: ${query}`);
     }
   }
