@@ -145,7 +145,7 @@ export class MessageStoreCozo implements MessageStore {
       this.runQuery(
         `?[id, tenant, messageCid, encodedMessageBytes, encodedData, ${names.join(',')} ] <- [[$id, $tenant, $messageCid, $encodedMessageBytes, $encodedData, ${names.map(n => '$'+ n).join(',')}]] :put message_store{id => tenant, messageCid, encodedMessageBytes, encodedData, ${names.join(',')}}`,
         {
-          id: this.getSequence(),  
+          id: this.getSequence(),
           tenant,
           messageCid,
           encodedMessageBytes,
@@ -238,11 +238,25 @@ export class MessageStoreCozo implements MessageStore {
 
 
   }
-  delete(tenant: string, cid: string, options?: MessageStoreOptions | undefined): Promise<void> {
-    throw new Error('Method not implemented.');
+  async delete(tenant: string, cid: string, options?: MessageStoreOptions | undefined): Promise<void> {
+    options?.signal?.throwIfAborted();
+    const result = await this.runQuery(`?[id] := *message_store{id,tenant, messageCid},tenant=$tenant,messageCid=$cid  :rm message_store {id}`,
+      {
+        tenant,
+        cid,
+      });
+    if (!MessageStoreCozo.isSuccessful(result)) {
+      throw new Error(`Failed to delete message: ${cid}`);
+    }
+    return Promise.resolve();
+
   }
-  clear(): Promise<void> {
-    throw new Error('Method not implemented.');
+  async clear(): Promise<void> {
+    const result = await this.runQuery(`?[id] := *message_store{id }  :rm message_store {id}`);
+    if (!MessageStoreCozo.isSuccessful(result)) {
+      throw new Error(`Failed to clear message store`);
+    }
+    return Promise.resolve();
   }
 
   // private part
