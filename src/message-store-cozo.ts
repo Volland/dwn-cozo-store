@@ -146,7 +146,7 @@ export class MessageStoreCozo implements MessageStore {
       this.runQuery(
         `?[id, tenant, messageCid, encodedMessageBytes, encodedData, ${names.join(',')} ] <- [[$id, $tenant, $messageCid, $encodedMessageBytes, $encodedData, ${names.map(n => '$'+ n).join(',')}]] :put message_store{id => tenant, messageCid, encodedMessageBytes, encodedData, ${names.join(',')}}`,
         {
-          id: this.getSequence(),
+          id: await this.getSequence(),
           tenant,
           messageCid,
           encodedMessageBytes,
