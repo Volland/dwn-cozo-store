@@ -1,12 +1,14 @@
 import { DwnInterfaceName, DwnMethodName, Filter, GenericMessage, MessageSort, MessageStore, MessageStoreOptions, Pagination, executeUnlessAborted } from "@tbd54566975/dwn-sdk-js";
 import { CozoResult, ICozoDb } from "./types.ts";
-import { sanitizeRecords } from "./utils/sanitize.ts";
+import { quote, sanitizeRecords } from "./utils/sanitize.ts";
 import { sha256 } from "multiformats/hashes/sha2";
 import * as block from 'multiformats/block';
 import * as cbor from '@ipld/dag-cbor';
+import { Socket } from "dgram";
 
 export class MessageStoreCozo implements MessageStore {
     #db: ICozoDb;
+    db: any;
     constructor(cozodb: ICozoDb)  {
         this.#db = cozodb
     }
@@ -40,6 +42,15 @@ export class MessageStoreCozo implements MessageStore {
                'parentId':'String?',
                'permissionsGrantId':'String?'
         }
+        #columns = {
+            id: 'Int',
+            tenant: 'String',
+            messageCid: 'String',
+            encodedMessageBytes: 'Bytes',
+            encodedData: 'String?',
+            ...this.#Indexes
+        }
+        #columnNames = Object.keys(this.#columns)
 
     open(): Promise<void> {
         const existingRelations = await this.getRelations()
@@ -164,7 +175,67 @@ export class MessageStoreCozo implements MessageStore {
 
     query(tenant: string, filters: Filter[], messageSort?: MessageSort | undefined, pagination?: Pagination | undefined, options?: MessageStoreOptions | undefined): Promise<{ messages: GenericMessage[]; cursor?: string | undefined; }> {
         options?.signal?.throwIfAborted();
+        const columnsFromSort = Object.keys(messageSort || {}).filter(k => !!this.#columns[k])
         
+        const columnsToSelect = ['encodedMessageBytes', 'encodedData', 'tenant','messageCid',].concat(columnsFromSort)
+        const columnsToFilter = columnsToSelect.slice(0)
+        const conditions = [` tenant = ${quote(tenant)}`]
+        const filterConditions: string[] = []
+        const orderBy = `${this.getOrderBy(messageSort)}, messageCid`
+        if (pagination?.cursor) {
+            //TODO: check direction of pagination
+            conditions.push(` messageCid > ${quote(pagination.cursor)} `)
+        }
+        if(messageSort?.datePublished !== undefined) {
+            conditions.push(` published='true' `);
+          }
+        filters.forEach((filter) => {
+            const andConditions: string[] = []
+            Object.entries(filter).forEach(([column, value]) => {
+                if(!this.#columns[column]) return;
+                columnsToFilter.push(column)
+                if (Array.isArray(value)) { // OneOfFilter
+                    andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`)
+                  } else if (typeof value === 'object') { // RangeFilter
+                    if (value.gt) {
+                        andConditions.push(`${column} '>' ${sanitizedValue(value.gt)}`);
+                    }
+                    if (value.gte) {
+                        andConditions.push(`${column} '>=' ${sanitizedValue(value.gt)}`);
+                    }
+                    if (value.lt) {
+                        andConditions.push(`${column} '<' ${sanitizedValue(value.gt)}`);
+                    }
+                    if (value.lte) {
+                        andConditions.push(`${column} '<=' ${sanitizedValue(value.gt)}`);
+                    }
+                  } else { // EqualFilter
+                    andConditions.push(`${column} '=' ${sanitizedValue(value.gt)}`);
+                  }
+            })
+            filterConditions.push( ` and(${andConditions.join(',')}) `)
+        })
+        const hasFilter = filterConditions.length > 0
+        const result = await executeUnlessAborted(  
+            this.runQuery(`?[${columnsToSelect.join(',')}] := *message_store{${columnsToFilter.join(',')}},
+            ${conditions.join(',')}
+            ${hasFilter ? `,or(${filterConditions.join(',')})` : ''}
+             :order ${orderBy}
+             ${pagination?.limit ? `:limit ${pagination.limit}` : ''}`
+             ),
+            options?.signal
+          );
+          
+        if (MessageStoreCozo.isEmpty(result)) {
+            return { messages: [], cursor: undefined };
+         } 
+
+         // extracts the full encoded message from the stored blob for each result item.
+         const messages: Promise<GenericMessage>[] = result.rows.map(([encodedMessageBytes, encodedData]) => this.parseEncodedMessage(encodedMessageBytes, encodedData, options));
+
+        // returns the pruned the messages, since we have and additional record from above, and a potential messageCid cursor
+        return this.getPaginationResults(messages,  pagination?.limit);
+
 
     }
     delete(tenant: string, cid: string, options?: MessageStoreOptions | undefined): Promise<void> {
@@ -209,7 +280,7 @@ export class MessageStoreCozo implements MessageStore {
         }
     
         return executeQuery()
-      }
+    }
       private async runOperation(query: string, params?: Record<string, any>) {
         const data = await this.runQuery(query, params)
         if (!EventLogCozo.isSuccessful(data)) {
@@ -279,5 +350,18 @@ export class MessageStoreCozo implements MessageStore {
           return  '-messageTimestamp'
         }
       }
+      private async getPaginationResults(
+        messages: Promise<GenericMessage>[], limit?: number
+      ): Promise<{ messages: GenericMessage[], cursor?: string }>{
+        if (limit !== undefined && messages.length > limit) {
+          messages = messages.slice(0, limit);
+          const lastMessage = messages.at(-1);
+          return {
+            messages : await Promise.all(messages),
+            cursor   : lastMessage ? await Message.getCid(await lastMessage) : undefined
+          };
+        }
+    
+        return { messages: await Promise.all(messages) };
+      }
     }
-}
