@@ -11,13 +11,13 @@ import { TestCozo } from './test-cozo.ts';
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 describe('Cozo Store Test Suite', () => {
-     const cozo = new TestCozo()
-     const dataStore = new DataStoreCozo(cozo)
-     const eventLog = new EventLogCozo(cozo)
-    const messageStore = new MessageStoreCozo(cozo)
-    TestSuite.runStoreDependentTests({
-      messageStore,
-      dataStore,
-      eventLog
-    });
+  const cozo = new TestCozo();
+  const dataStore = new DataStoreCozo(cozo);
+  const eventLog = new EventLogCozo(cozo);
+  const messageStore = new MessageStoreCozo(cozo);
+  TestSuite.runStoreDependentTests({
+    messageStore,
+    dataStore,
+    eventLog
+  });
 });
