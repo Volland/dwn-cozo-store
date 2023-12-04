@@ -19,7 +19,5 @@
       "esModuleInterop": true,
       "strictNullChecks": true
     },
-    "include": [
-      "./src"
-, "tests"    ],
+    "include": ["./src"],
   }
