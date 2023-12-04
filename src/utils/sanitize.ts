@@ -11,11 +11,11 @@ export function sanitizeRecords(records: Record<string, string | number | boolea
 
 export function sanitizedValue(value: any): string | number | boolean {
   if (typeof value === 'string') {
-    return quote(value, false);
+    return quote(value, true);
   } else if (typeof value === 'number' || typeof value === 'boolean') {
     return value;
   } else {
-    return quote(JSON.stringify(value), false);
+    return quote(JSON.stringify(value), true);
   }
 }
 export function quote(str: string, wrapInQuote: boolean = true): string {

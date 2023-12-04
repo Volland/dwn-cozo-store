@@ -178,7 +178,7 @@ export class MessageStoreCozo implements MessageStore {
     options?.signal?.throwIfAborted();
     const columnsFromSort = Object.keys(messageSort || {}).filter(k => !!this.#columns[k]);
 
-    const columnsToSelect = ['encodedMessageBytes', 'encodedData', 'tenant','messageCid',].concat(columnsFromSort);
+    const columnsToSelect = ['encodedMessageBytes', 'encodedData', 'tenant','messageCid','messageTimestamp',].concat(columnsFromSort);
     const columnsToFilter = columnsToSelect.slice(0);
     const conditions = [` tenant = ${quote(tenant)}`];
     const filterConditions: string[] = [];
@@ -211,7 +211,7 @@ export class MessageStoreCozo implements MessageStore {
             andConditions.push(`${column} <= ${sanitizedValue(value.gt)}`);
           }
         } else { // EqualFilter
-          andConditions.push(`${column} = ${sanitizedValue(value)}`);
+          andConditions.push(`${column} == ${sanitizedValue(value)}`);
         }
       });
       filterConditions.push( ` and(${andConditions.join(',')}) `);
