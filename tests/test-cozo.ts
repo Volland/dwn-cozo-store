@@ -1,5 +1,5 @@
 import { CozoDb } from 'cozo-node';
-import { ICozoDb, CozoResult } from '../types.ts';
+import { ICozoDb, CozoResult } from '../src/types.ts';
 
 export class TestCozo implements ICozoDb {
   private db: CozoDb;
