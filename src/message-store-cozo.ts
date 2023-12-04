@@ -68,43 +68,44 @@ export class MessageStoreCozo implements MessageStore {
             :create message_store {
                id: Int
                =>
-               tenant: String
-               messageCid: String
-               encodedMessageBytes: Bytes
-               encodedData: String?
-               interface: String?
-               method: String?
-               schema: String?
-               dataCid: String?
-               dataSize: Int?
-               dateCreated: String?
-               messageTimestamp: String?
-               dataFormat: String?
-               isLatestBaseState: String?
-               published: String?
-               author: String?
-               recordId: String?
-               entryId: String?
-               datePublished: String?
-               latest: String?
-               protocol: String?
-               dateExpires: String?
-               description: String?
-               grantedTo: String?
-               grantedBy: String?
-               grantedFor: String?
-               permissionsRequestId: String?
-               attester: String?
-               protocolPath: String?
-               recipient: String?
-               contextId: String?
-               parentId: String?
+               tenant: String,
+               messageCid: String,
+               encodedMessageBytes: Bytes,
+               encodedData: String?,
+               interface: String?,
+               method: String?,
+               schema: String?,
+               dataCid: String?,
+               dataSize: Int?,
+               dateCreated: String?,
+               messageTimestamp: String?,
+               dataFormat: String?,
+               isLatestBaseState: String?,
+               published: String?,
+               author: String?,
+               recordId: String?,
+               entryId: String?,
+               datePublished: String?,
+               latest: String?,
+               protocol: String?,
+               dateExpires: String?,
+               description: String?,
+               grantedTo: String?,
+               grantedBy: String?,
+               grantedFor: String?,
+               permissionsRequestId: String?,
+               attester: String?,
+               protocolPath: String?,
+               recipient: String?,
+               contextId: String?,
+               parentId: String?,
                permissionsGrantId: String?
             }`);
     }
     return Promise.resolve();
   }
   close(): Promise<void> {
+    console.debug('Closing Cozo DB');
     this.#db!.close!();
     return Promise.resolve();
   }
@@ -198,19 +199,19 @@ export class MessageStoreCozo implements MessageStore {
           andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
         } else if (typeof value === 'object') { // RangeFilter
           if (value.gt) {
-            andConditions.push(`${column} '>' ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} > ${sanitizedValue(value.gt)}`);
           }
           if (value.gte) {
-            andConditions.push(`${column} '>=' ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} >= ${sanitizedValue(value.gt)}`);
           }
           if (value.lt) {
-            andConditions.push(`${column} '<' ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} < ${sanitizedValue(value.gt)}`);
           }
           if (value.lte) {
-            andConditions.push(`${column} '<=' ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} <= ${sanitizedValue(value.gt)}`);
           }
         } else { // EqualFilter
-          andConditions.push(`${column} '=' ${sanitizedValue(value)}`);
+          andConditions.push(`${column} = ${sanitizedValue(value)}`);
         }
       });
       filterConditions.push( ` and(${andConditions.join(',')}) `);

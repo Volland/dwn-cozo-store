@@ -22,7 +22,7 @@ export class EventLogCozo implements EventLog {
             :create event_log {
                id: Int
                =>
-               tenant: String
+               tenant: String,
                messageCid: String
             }`);
     }

@@ -32,8 +32,8 @@ export class DataStoreCozo implements DataStore {
             :create data_store {
                id: Int
                =>
-               tenant: String
-               dataCid: String
+               tenant: String,
+               dataCid: String,
                data: Bytes
             }`);
     }
@@ -42,8 +42,8 @@ export class DataStoreCozo implements DataStore {
             :create data_store_references {
                id: Int
                =>
-               tenant: String
-               dataCid: String
+               tenant: String,
+               dataCid: String,
                messageCid: String
             }`);
     }
