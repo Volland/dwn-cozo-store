@@ -16,9 +16,9 @@
   },
   "react-native": "./dist/esm/src/main.js",
   "scripts": {
-    "build:esm": "npm run clean & tsc",
-    "build:cjs": "npm run build:esm && node build/create-cjs-bundle.cjs && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
-    "build": "npm run clean && npm run build:esm && npm run build:cjs",
+    "build:esm": "yarn run clean & tsc",
+    "build:cjs": "yarn run build:esm && node build/create-cjs-bundle.cjs && echo '{\"type\": \"commonjs\"}' > ./dist/cjs/package.json",
+    "build": "yarn run clean && yarn run build:esm && yarn run build:cjs",
     "lint": "eslint . --ext .ts --max-warnings 0",
     "test": "rimraf compiled && tsc -p tests/tsconfig.json && mocha",
     "lint:fix": "eslint . --ext .ts --fix",
