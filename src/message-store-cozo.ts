@@ -4,7 +4,6 @@ import { quote, sanitizeRecords } from "./utils/sanitize.ts";
 import { sha256 } from "multiformats/hashes/sha2";
 import * as block from 'multiformats/block';
 import * as cbor from '@ipld/dag-cbor';
-import { Socket } from "dgram";
 
 export class MessageStoreCozo implements MessageStore {
     #db: ICozoDb;
