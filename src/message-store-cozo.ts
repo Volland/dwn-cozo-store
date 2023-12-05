@@ -246,14 +246,18 @@ export class MessageStoreCozo implements MessageStore {
   }
   async delete(tenant: string, cid: string, options?: MessageStoreOptions | undefined): Promise<void> {
     options?.signal?.throwIfAborted();
-    const result = await this.runQuery(`?[id] := *message_store{id,tenant, messageCid},tenant=$tenant,messageCid=$cid  :rm message_store {id}`,
+
+    const result = await executeUnlessAborted(
+        this.runQuery(`?[id] := *message_store{id,tenant, messageCid},tenant=$tenant,messageCid=$cid  :rm message_store {id}`,
       {
         tenant,
         cid,
-      });
+      }),
+      options?.signal
+    );
     if (!MessageStoreCozo.isSuccessful(result)) {
-      throw new Error(`Failed to delete message: ${cid}`);
-    }
+        throw new Error(`Failed to delete message: ${cid}`);
+      }
     return Promise.resolve();
 
   }
