@@ -49,7 +49,6 @@ export class MessageStoreCozo implements MessageStore {
     encodedData         : 'String?',
     ...this.#Indexes
   };
-  #columnNames = Object.keys(this.#columns);
   #indexColumnNames = Object.keys(this.#Indexes);
 
   async open(): Promise<void> {
@@ -107,7 +106,7 @@ export class MessageStoreCozo implements MessageStore {
   }
   close(): Promise<void> {
     console.debug('Closing Cozo DB');
-    this.#db!.close!();
+    //this.#db!.close!();
     return Promise.resolve();
   }
   async put(tenant: string, message: GenericMessage, indexes: { [key: string]: string | boolean; }, options?: MessageStoreOptions | undefined): Promise<void> {
@@ -205,19 +204,19 @@ export class MessageStoreCozo implements MessageStore {
           andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
         } else if (typeof value === 'object') { // RangeFilter
           if (value.gt) {
-            andConditions.push(`${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
+            andConditions.push(`!is_null(${column}),${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
           }
           if (value.gte) {
-            andConditions.push(`${column} >= ${wrapStrings(sanitizedValue(value.gt))}`);
+            andConditions.push(`!is_null(${column}), ${column} >= ${wrapStrings(sanitizedValue(value.gte))}`);
           }
           if (value.lt) {
-            andConditions.push(`${column} < ${wrapStrings(sanitizedValue(value.gt))}`);
+            andConditions.push(`!is_null(${column}), ${column} < ${wrapStrings(sanitizedValue(value.lt))}`);
           }
           if (value.lte) {
-            andConditions.push(`${column} <= ${wrapStrings(sanitizedValue(value.gt))}`);
+            andConditions.push(`!is_null(${column}), ${column} <= ${wrapStrings(sanitizedValue(value.lte))}`);
           }
         } else { // EqualFilter
-          andConditions.push(`${column} == ${wrapStrings(sanitizedValue(value))}`);
+          andConditions.push(`!is_null(${column}), ${column} == ${wrapStrings(sanitizedValue(value))}`);
         }
       });
       filterConditions.push( ` and( ${andConditions.join(',')} ) `);
@@ -226,7 +225,7 @@ export class MessageStoreCozo implements MessageStore {
     const result = await executeUnlessAborted(
       this.runQuery(`?[${columnsToSelect.join(',')}] := *message_store{${columnsToFilter.join(',')}},
             ${conditions.join(',')}
-            ${hasFilter ? `,or( ${filterConditions.join(',')} )` : ''}
+            ${hasFilter ? `, (${filterConditions.join(' or ')} )` : ''}
              :order ${orderBy}
              ${pagination?.limit ? `:limit ${pagination.limit + 1}` : ''}`
       ),

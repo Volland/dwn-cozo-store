@@ -29,7 +29,8 @@ export class EventLogCozo implements EventLog {
   }
   async close(): Promise<void> {
     if (this.#db.close) {
-      this.#db.close();
+        console.debug('Closing Cozo DB');
+     // this.#db.close();
     }
   }
   async append(tenant: string, messageCid: string): Promise<string> {
@@ -70,8 +71,8 @@ export class EventLogCozo implements EventLog {
       return 0;
     }
 
-    const deleteLogCountResult = await this.runQuery(`?[count(id)] := *event_log[id,$tenant,messageCid], messageCid in ['${cids.join(',')}']`);
-    const deleteLog = await this.runQuery(`?[id] := *event_log[id,$tenant,messageCid], messageCid in ['${cids.join(',')}'] :rm event_log {id}`);
+    const deleteLogCountResult = await this.runQuery(`?[count(id)] := *event_log[id,$tenant,messageCid], messageCid in ['${cids.join(',')}']`, {tenant});
+    const deleteLog = await this.runQuery(`?[id] := *event_log[id,$tenant,messageCid], messageCid in ['${cids.join(',')}'] :rm event_log {id}`, {tenant});
 
     if (!EventLogCozo.isSuccessful(deleteLog)) {
       throw new Error(`Failed to delete events`);

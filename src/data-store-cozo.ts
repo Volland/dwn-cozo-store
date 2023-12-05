@@ -52,7 +52,8 @@ export class DataStoreCozo implements DataStore {
   }
   close(): Promise<void> {
     if (this.#db && this.#db.close) {
-      this.#db.close();
+      console.debug('Closing Cozo DB');
+      //this.#db.close();
     }
     return Promise.resolve();
   }
@@ -117,7 +118,7 @@ export class DataStoreCozo implements DataStore {
 
   }
   async associate(tenant: string, messageCid: string, dataCid: string): Promise<AssociateResult | undefined> {
-    const hasDataResult = await this.runQuery(`?[id, length(data)] := *data_store[id,tenant, dataCid, data],tenant=$tenant,dataCid=$dataCid :limit 1`, {
+    const hasDataResult = await this.runQuery(`?[id, length] := *data_store[id,tenant, dataCid, data],tenant=$tenant,dataCid=$dataCid,length=length(data) :limit 1`, {
       tenant,
       dataCid,
     });
@@ -132,8 +133,8 @@ export class DataStoreCozo implements DataStore {
     });
     const hasReferenceRecord = !DataStoreCozo.isEmpty(hasReferenceResult);
     if (!hasReferenceRecord) {
-      await this.runQuery(`?[id] <-[[$id, $tenant,$dataCid, $messageCid]] :put data_store_references {id => tenant, dataCid, messageCid }`, {
-        id: this.getSequence(this.#relationNames.dataStoreReferences),
+      await this.runQuery(`?[id, tenant, dataCid, messageCid] <-[[$id, $tenant,$dataCid, $messageCid]] :put data_store_references {id => tenant, dataCid, messageCid }`, {
+        id: await this.getSequence(this.#relationNames.dataStoreReferences),
         tenant,
         dataCid,
         messageCid
