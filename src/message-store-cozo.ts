@@ -1,6 +1,6 @@
 import { DwnInterfaceName, DwnMethodName, Filter, GenericMessage, Message, MessageSort, MessageStore, MessageStoreOptions, Pagination, executeUnlessAborted } from '@tbd54566975/dwn-sdk-js';
 import { CozoResult, ICozoDb } from './types.js';
-import { quote, sanitizeRecords, sanitizedValue } from './utils/sanitize.js';
+import { quote, sanitizeRecords, sanitizedValue, wrapStrings } from './utils/sanitize.js';
 import { sha256 } from 'multiformats/hashes/sha2';
 import * as block from 'multiformats/block';
 import * as cbor from '@ipld/dag-cbor';
@@ -50,6 +50,7 @@ export class MessageStoreCozo implements MessageStore {
     ...this.#Indexes
   };
   #columnNames = Object.keys(this.#columns);
+  #indexColumnNames = Object.keys(this.#Indexes);
 
   async open(): Promise<void> {
     const existingRelations = await this.getRelations();
@@ -138,8 +139,13 @@ export class MessageStoreCozo implements MessageStore {
     const encodedMessageBytes = Buffer.from(encodedMessageBlock.bytes);
     const sanitated = sanitizeRecords(indexes, this.#Indexes);
 
-    const names = Object.keys(sanitated).sort();
+    this.#indexColumnNames.forEach((index) => {
+        if (sanitated[index] === undefined) {
+            sanitated[index] = null;
+        }
+    })
 
+    const names = Object.keys(sanitated).sort()
 
 
     await executeUnlessAborted(
@@ -185,7 +191,7 @@ export class MessageStoreCozo implements MessageStore {
     const orderBy = `${this.getOrderBy(messageSort)}, messageCid`;
     if (pagination?.cursor) {
       //TODO: check direction of pagination
-      conditions.push(` messageCid > ${quote(pagination.cursor)} `);
+      conditions.push(` messageCid > ${quote(pagination.cursor,true)} `);
     }
     if(messageSort?.datePublished !== undefined) {
       conditions.push(` published='true' `);
@@ -199,30 +205,30 @@ export class MessageStoreCozo implements MessageStore {
           andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
         } else if (typeof value === 'object') { // RangeFilter
           if (value.gt) {
-            andConditions.push(`${column} > ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
           }
           if (value.gte) {
-            andConditions.push(`${column} >= ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} >= ${wrapStrings(sanitizedValue(value.gt))}`);
           }
           if (value.lt) {
-            andConditions.push(`${column} < ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} < ${wrapStrings(sanitizedValue(value.gt))}`);
           }
           if (value.lte) {
-            andConditions.push(`${column} <= ${sanitizedValue(value.gt)}`);
+            andConditions.push(`${column} <= ${wrapStrings(sanitizedValue(value.gt))}`);
           }
         } else { // EqualFilter
-          andConditions.push(`${column} == ${sanitizedValue(value)}`);
+          andConditions.push(`${column} == ${wrapStrings(sanitizedValue(value))}`);
         }
       });
-      filterConditions.push( ` and(${andConditions.join(',')}) `);
+      filterConditions.push( ` and( ${andConditions.join(',')} ) `);
     });
     const hasFilter = filterConditions.length > 0;
     const result = await executeUnlessAborted(
       this.runQuery(`?[${columnsToSelect.join(',')}] := *message_store{${columnsToFilter.join(',')}},
             ${conditions.join(',')}
-            ${hasFilter ? `,or(${filterConditions.join(',')})` : ''}
+            ${hasFilter ? `,or( ${filterConditions.join(',')} )` : ''}
              :order ${orderBy}
-             ${pagination?.limit ? `:limit ${pagination.limit}` : ''}`
+             ${pagination?.limit ? `:limit ${pagination.limit + 1}` : ''}`
       ),
       options?.signal
     );
@@ -356,15 +362,16 @@ export class MessageStoreCozo implements MessageStore {
     messageSort?: MessageSort
   ): string {
     if(messageSort?.dateCreated !== undefined)  {
-      return messageSort.dateCreated > 0 ? '': '-' + 'dateCreated';
-    } else if(messageSort?.datePublished !== undefined) {
-      return messageSort.datePublished > 0 ? '': '-' + 'datePublished';
-    } else if (messageSort?.messageTimestamp !== undefined) {
-      return messageSort.messageTimestamp > 0 ? '': '-' + 'messageTimestamp';
-    } else {
-      return  '-messageTimestamp';
+        return `${messageSort.dateCreated > 0 ? '': '-'} dateCreated`;
+      } else if(messageSort?.datePublished !== undefined) {
+        return `${messageSort.datePublished > 0 ? '': '-'} datePublished`;
+      } else if (messageSort?.messageTimestamp !== undefined) {
+        return `${messageSort.messageTimestamp > 0 ? '': '-'} messageTimestamp`;
+      } else {
+        return  '-messageTimestamp';
+      }
     }
-  }
+
   private async getPaginationResults(
     messages: Promise<GenericMessage>[], limit?: number
   ): Promise<{ messages: GenericMessage[], cursor?: string }>{
