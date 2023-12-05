@@ -1,6 +1,9 @@
 # dwn-cozo-store
 
 ## Why cozo 
+- [COZO repo](https://github.com/cozodb/cozo) 
+
+- [COZO docs](https://cozodb.github.io/cozo-docs/)
 > CozoDB is a general-purpose, transactional, relational database that uses Datalog for query, is embeddable but can also handle huge amounts of data and concurrency, and focuses on graph data and algorithms. It supports time travel and it is performant!
 Cozo is open source DB and query engine that could be run on top of few storage engines. 
 
