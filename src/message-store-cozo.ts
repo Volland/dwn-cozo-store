@@ -187,13 +187,16 @@ export class MessageStoreCozo implements MessageStore {
     const columnsToFilter = columnsToSelect.slice(0);
     const conditions = [` tenant = ${quote(tenant)}`];
     const filterConditions: string[] = [];
-    const orderBy = `${this.getOrderBy(messageSort)}, messageCid`;
+    const order = this.getOrderBy(messageSort);
+    const sortDirection = order.startsWith('-') ? '<' : '>';
+    const orderBy = `${order}, messageCid`;
     if (pagination?.cursor) {
       //TODO: check direction of pagination
-      conditions.push(` messageCid > ${quote(pagination.cursor,true)} `);
+      conditions.push(` messageCid ${sortDirection} ${quote(pagination.cursor,true)} `);
     }
     if(messageSort?.datePublished !== undefined) {
       conditions.push(` published='true' `);
+      columnsToFilter.push('published')
     }
     filters.forEach((filter) => {
       const andConditions: string[] = [];
@@ -371,7 +374,7 @@ export class MessageStoreCozo implements MessageStore {
       } else if (messageSort?.messageTimestamp !== undefined) {
         return `${messageSort.messageTimestamp > 0 ? '': '-'} messageTimestamp`;
       } else {
-        return  '-messageTimestamp';
+        return  'messageTimestamp';
       }
     }
 
