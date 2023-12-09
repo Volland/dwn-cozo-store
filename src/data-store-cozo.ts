@@ -122,7 +122,7 @@ export class DataStoreCozo implements DataStore {
       }),
     }
     console.debug('4', resultData);
-    return result ;
+    return resultData ;
 
   }
   async associate(tenant: string, messageCid: string, dataCid: string): Promise<AssociateResult | undefined> {
