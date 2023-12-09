@@ -50,14 +50,18 @@ export class EventLogCozo implements EventLog {
   async getEvents(tenant: string, options?: GetEventsOptions | undefined): Promise<Event[]> {
     let data;
     if (options && options.gt && !Number.isNaN(Number.parseInt(options.gt)) ) {
-      data = await this.runQuery(`?[id,messageCid] := *event_log[id,$tenant,messageCid],id>$gt`, {
+      console.debug('getEvents with gt', options.gt , tenant);
+      const query = `?[id,messageCid] := *event_log[id,$tenant,messageCid],id > $gt`
+      console.log (query)
+      data = await this.runQuery(query, {
         tenant,
         gt: Number.parseInt(options.gt),
       });
-    }
+    } else {
     data = await this.runQuery(`?[id,messageCid] := *event_log[id,$tenant,messageCid]`, {
       tenant,
     });
+   } 
     if (EventLogCozo.isEmpty(data)) {
       return [];
     }
