@@ -88,24 +88,30 @@ export class DataStoreCozo implements DataStore {
 
   }
   async get(tenant: string, messageCid: string, dataCid: string): Promise<GetResult | undefined> {
+    console.debug('get', tenant, messageCid, dataCid);
     const hasReferenceResult = await this.runQuery(`?[id] := *data_store_references[id,$tenant, $dataCid, $messageCid] :limit 1`, {
       tenant,
       dataCid,
       messageCid
     });
+    console.debug('hasReferenceResult', hasReferenceResult);
     const hasResult = !DataStoreCozo.isEmpty(hasReferenceResult);
     if (!hasResult) {
       return undefined;
     }
+    console.debug('2')
     const result = await this.runQuery(`?[dataCid,data] := *data_store[id,tenant, dataCid, data],tenant=$tenant,dataCid=$dataCid :limit 1`, {
       tenant,
       dataCid,
     });
-    if (!DataStoreCozo.isSuccessful(result)) {
+    console.debug('3', result);
+    if (DataStoreCozo.isEmpty(result)) {
+      console.debug('3.1');
       return undefined;
     }
+    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
     const [_dataCid, data] = result.rows[0];
-    return {
+    const resultData = {
       dataCid    : _dataCid,
       dataSize   : data.length,
       dataStream : new Readable({
@@ -114,7 +120,9 @@ export class DataStoreCozo implements DataStore {
           this.push(null);
         }
       }),
-    };
+    }
+    console.debug('4', resultData);
+    return result ;
 
   }
   async associate(tenant: string, messageCid: string, dataCid: string): Promise<AssociateResult | undefined> {
