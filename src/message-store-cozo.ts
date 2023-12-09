@@ -183,55 +183,80 @@ export class MessageStoreCozo implements MessageStore {
     options?.signal?.throwIfAborted();
     const columnsFromSort = Object.keys(messageSort || {}).filter(k => !!this.#columns[k]);
 
-    const columnsToSelect = ['encodedMessageBytes', 'encodedData', 'tenant','messageCid','messageTimestamp',].concat(columnsFromSort);
+    const columnsToSelect = ['encodedMessageBytes', 'encodedData', 'tenant'].concat(columnsFromSort);
     const columnsToFilter = columnsToSelect.slice(0);
     const conditions = [` tenant = ${quote(tenant)}`];
     const filterConditions: string[] = [];
-    const order = this.getOrderBy(messageSort);
-    const sortDirection = order.startsWith('-') ? '<' : '>';
-    const orderBy = `${order}, messageCid`;
+    
+    // Sorting Order handling 
+    const {order , column: sortColumn} = this.getOrderBy(messageSort);
+    const sortDirection = order === '-' ? '<' : '>';
+    const orderBy = `${order}${sortColumn}, messageCid`;
+
+    columnsToSelect.push(sortColumn);
+    columnsToFilter.push(sortColumn);
+    columnsToSelect.push('messageCid');
+    columnsToFilter.push('messageCid');
+
     if (pagination?.cursor) {
-      //TODO: check direction of pagination
-      conditions.push(` messageCid ${sortDirection} ${quote(pagination.cursor,true)} `);
+      // TODO : What will happen if cursor gets deleted?
+      const result = await this.runQuery(`?[${sortColumn}, messageCid] := *message_store{messageCid, ${sortColumn}},tenant=$tenant, messageCid=$cursor :limit 1`, {  
+        tenant,
+        cursor: pagination.cursor
+      });
+       if (MessageStoreCozo.isEmpty(result)) {
+            return { messages: [], cursor: undefined };
+        }
+        const [sortValue, cursorMessageCid] = result.rows[0];
+
+      console.log('>>>>>> pagination', pagination);
+      conditions.push(`[${sortColumn}, messageCid] ${sortDirection} [ ${wrapStrings(sanitizedValue(sortValue))}, ${wrapStrings(sanitizedValue(cursorMessageCid))}] `);
     }
     if(messageSort?.datePublished !== undefined) {
       conditions.push(` published='true' `);
       columnsToFilter.push('published')
     }
-    filters.forEach((filter) => {
-      const andConditions: string[] = [];
-      Object.entries(filter).forEach(([column, value]) => {
-        if(!this.#columns[column]) return;
-        columnsToFilter.push(column);
-        if (Array.isArray(value)) { // OneOfFilter
-          andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
-        } else if (typeof value === 'object') { // RangeFilter
-          if (value.gt) {
-            andConditions.push(`!is_null(${column}),${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
-          }
-          if (value.gte) {
-            andConditions.push(`!is_null(${column}), ${column} >= ${wrapStrings(sanitizedValue(value.gte))}`);
-          }
-          if (value.lt) {
-            andConditions.push(`!is_null(${column}), ${column} < ${wrapStrings(sanitizedValue(value.lt))}`);
-          }
-          if (value.lte) {
-            andConditions.push(`!is_null(${column}), ${column} <= ${wrapStrings(sanitizedValue(value.lte))}`);
-          }
-        } else { // EqualFilter
-          andConditions.push(`!is_null(${column}), ${column} == ${wrapStrings(sanitizedValue(value))}`);
-        }
-      });
-      filterConditions.push( ` and( ${andConditions.join(',')} ) `);
-    });
+    if (Object.keys(filters).length > 0) {
+        filters.forEach((filter) => {
+        const andConditions: string[] = [];
+        Object.entries(filter).forEach(([column, value]) => {
+            if(!this.#columns[column]) return;
+            columnsToFilter.push(column);
+            if (Array.isArray(value)) { // OneOfFilter
+            andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
+            } else if (typeof value === 'object') { // RangeFilter
+            if (value.gt) {
+                andConditions.push(`!is_null(${column}),${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
+            }
+            if (value.gte) {
+                andConditions.push(`!is_null(${column}), ${column} >= ${wrapStrings(sanitizedValue(value.gte))}`);
+            }
+            if (value.lt) {
+                andConditions.push(`!is_null(${column}), ${column} < ${wrapStrings(sanitizedValue(value.lt))}`);
+            }
+            if (value.lte) {
+                andConditions.push(`!is_null(${column}), ${column} <= ${wrapStrings(sanitizedValue(value.lte))}`);
+            }
+            } else { // EqualFilter
+            andConditions.push(`!is_null(${column}), ${column} == ${wrapStrings(sanitizedValue(value))}`);
+            }
+        });
+        filterConditions.push( ` and( ${andConditions.join(',')} ) `);
+        });
+    }
     const hasFilter = filterConditions.length > 0;
-    const result = await executeUnlessAborted(
-      this.runQuery(`?[${columnsToSelect.join(',')}] := *message_store{${columnsToFilter.join(',')}},
+    const query = `?[${columnsToSelect.join(',')}] := *message_store{${columnsToFilter.join(',')}},
             ${conditions.join(',')}
             ${hasFilter ? `, (${filterConditions.join(' or ')} )` : ''}
              :order ${orderBy}
-             ${pagination?.limit ? `:limit ${pagination.limit + 1}` : ''}`
-      ),
+             ${pagination?.limit && pagination.limit > 0 ? `:limit ${pagination.limit }` : ''}`
+    
+    if (pagination) {
+        console.log('>>>>>> query', query);
+        console.log('>>>>>> pagination', pagination);
+    }         
+    const result = await executeUnlessAborted(
+      this.runQuery(query),
       options?.signal
     );
 
@@ -366,15 +391,15 @@ export class MessageStoreCozo implements MessageStore {
   }
   private getOrderBy(
     messageSort?: MessageSort
-  ): string {
+  ): {order: string, column: string} {
     if(messageSort?.dateCreated !== undefined)  {
-        return `${messageSort.dateCreated > 0 ? '': '-'} dateCreated`;
+        return {order: messageSort.dateCreated > 0 ? '': '-', column: `dateCreated`}
       } else if(messageSort?.datePublished !== undefined) {
-        return `${messageSort.datePublished > 0 ? '': '-'} datePublished`;
+        return {order:messageSort.datePublished > 0 ? '': '-', column: 'datePublished'}
       } else if (messageSort?.messageTimestamp !== undefined) {
-        return `${messageSort.messageTimestamp > 0 ? '': '-'} messageTimestamp`;
+        return {order: messageSort.messageTimestamp > 0 ? '': '-', column: 'messageTimestamp'}
       } else {
-        return  'messageTimestamp';
+        return {order:'', column: 'messageTimestamp'}
       }
     }
 
