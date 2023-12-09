@@ -249,7 +249,7 @@ export class MessageStoreCozo implements MessageStore {
             ${conditions.join(',')}
             ${hasFilter ? `, (${filterConditions.join(' or ')} )` : ''}
              :order ${orderBy}
-             ${pagination?.limit && pagination.limit > 0 ? `:limit ${pagination.limit }` : ''}`
+             ${pagination?.limit && pagination.limit > 0 ? `:limit ${pagination.limit + 1}` : ''}`
     
     if (pagination) {
         console.log('>>>>>> query', query);
