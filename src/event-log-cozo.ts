@@ -157,7 +157,7 @@ export class EventLogCozo implements EventLog {
   }
   async  queryEvents(tenant: string, filters: Filter[], cursor?: string): Promise<string[]> {
 
-    const columnsToSelect = ['messageCid']
+    const columnsToSelect = ['messageCid', 'watermark']
     const columnsToFilter = columnsToSelect.slice(0);
     const conditions = [` tenant = ${quote(tenant)}`];
     const filterConditions: string[] = []
@@ -173,8 +173,6 @@ export class EventLogCozo implements EventLog {
       if (!EventLogCozo.isEmpty(waterMarkResult)) {
         const watermark = waterMarkResult.rows[0][0]
         conditions.push( `watermark > '${watermark}'`)
-        columnsToSelect.push('watermark')
-        columnsToFilter.push('watermark')
       }
 
     }
@@ -184,7 +182,7 @@ export class EventLogCozo implements EventLog {
       Object.entries(filter).forEach(([column, value]) => {
           if(!this.#columns[column]) {
             console.error('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>' , column)
-
+            return
           } 
           columnsToFilter.push(column);
           if (Array.isArray(value)) { // OneOfFilter
@@ -213,10 +211,10 @@ export class EventLogCozo implements EventLog {
   const query = `?[${columnsToSelect.join(',')}] := *event_log{${columnsToFilter.join(',')}},
   ${conditions.join(',')}
   ${hasFilter ? `, (${filterConditions.join(' or ')} )` : ''}
-  ${cursor ? ':order watermark': ''}
+  :order watermark
   `
   const result = await this.runQuery(query)
-  return result.rows[0]
+  return result.rows.map(([id]) => id)
 
   }
 
