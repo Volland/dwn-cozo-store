@@ -82,6 +82,34 @@ erDiagram
         int Id 
         string tenant
         string messageCid
+        String interface
+        String method
+        String schema
+        String dataCid
+        Int   dataSize
+        String dateCreated
+        String messageTimestamp
+        String dataFormat
+        String isLatestBaseState
+        String published
+        String author
+        String recordId
+        String entryId 
+        String datePublished
+        String latest
+        String protocol
+        String dateExpires
+        String description
+        String grantedTo
+        String grantedBy
+        String grantedFor
+        String permissionsRequestId
+        String attester
+        String protocolPath
+        String recipient
+        String contextId
+        String parentId
+        String permissionsGrantId
     }
     data_store {
         int id 

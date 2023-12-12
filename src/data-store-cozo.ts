@@ -204,7 +204,7 @@ export class DataStoreCozo implements DataStore {
     return Promise.resolve();
   }
 
-  private async runQuery(query: string, params?: Record<string, any>, print: boolean = true, maxRetries: number = 3) {
+  private async runQuery(query: string, params?: Record<string, any>, print: boolean = false, maxRetries: number = 3) {
     let retries = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

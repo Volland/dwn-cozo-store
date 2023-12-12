@@ -39,33 +39,33 @@ export class EventLogCozo implements EventLog {
   tenant: 'String',
   messageCid: 'String',
   interface: 'String?',
-  method: 'String?',
-  schema: 'String?',
-  dataCid: 'String?',
-  dataSize: 'Int?',
-  dateCreated: 'String?',
-  messageTimestamp: 'String?',
-  dataFormat: 'String?',
-  isLatestBaseState: 'String?',
-  published: 'String?',
-  author: 'String?',
-  recordId: 'String?',
-  entryId: 'String?',
-  datePublished: 'String?',
-  latest: 'String?',
-  protocol: 'String?',
-  dateExpires: 'String?',
-  description: 'String?',
-  grantedTo: 'String?',
-  grantedBy: 'String?',
-  grantedFor: 'String?',
-  permissionsRequestId: 'String?',
-  attester: 'String?',
-  protocolPath: 'String?',
-  recipient: 'String?',
-  contextId: 'String?',
-  parentId: 'String?',
-  permissionsGrantId: 'String?',
+    method: 'String?',
+    schema: 'String?',
+    dataCid: 'String?',
+    dataSize: 'Int?',
+    dateCreated: 'String?',
+    messageTimestamp: 'String?',
+    dataFormat: 'String?',
+    isLatestBaseState: 'String?',
+    published: 'String?',
+    author: 'String?',
+    recordId: 'String?',
+    entryId: 'String?',
+    datePublished: 'String?',
+    latest: 'String?',
+    protocol: 'String?',
+    dateExpires: 'String?',
+    description: 'String?',
+    grantedTo: 'String?',
+    grantedBy: 'String?',
+    grantedFor: 'String?',
+    permissionsRequestId: 'String?',
+    attester: 'String?',
+    protocolPath: 'String?',
+    recipient: 'String?',
+    contextId: 'String?',
+    parentId: 'String?',
+    permissionsGrantId: 'String?',
 };
 #indexColumnNames = Object.keys(this.#Indexers)
 
@@ -119,7 +119,7 @@ export class EventLogCozo implements EventLog {
                recipient: String?,
                contextId: String?,
                parentId: String?,
-               permissionsGrantId: String?, 
+               permissionsGrantId: String?
             }`);
     }
   }
@@ -133,19 +133,18 @@ export class EventLogCozo implements EventLog {
     const watermark = await this.getSequence();
 
     const sanitated = sanitizeRecords(indexes, this.#Indexers);
-    const names = Object.keys(sanitated).sort()
-
     this.#indexColumnNames.forEach((index) => {
         if (sanitated[index] === undefined) {
             sanitated[index] = null;
         }
     })
-    const result = await this.runQuery(`?[watermark, tenant, messageCid,  ${names.join(',')}] <-[[$watermark, $tenant, $messageCid, ${names.map(n => '$'+ n).join(',')}]] :put event_log{watermark  => tenant, messageCid,  ${names.join(',')} }`, 
+    const names = Object.keys(sanitated).sort()
+    const result = await this.runQuery(`?[watermark, tenant, messageCid,${names.join(',')}] <-[[$watermark, $tenant, $messageCid, ${names.map(n => '$'+ n).join(',')}]] :put event_log{watermark  => tenant, messageCid,  ${names.join(',')} }`, 
     {
       tenant,
       messageCid,
       watermark,
-
+      ...sanitated
     });
     if (!EventLogCozo.isSuccessful(result)) {
       throw new Error(`Failed to append event: ${messageCid}`);
@@ -160,7 +159,7 @@ export class EventLogCozo implements EventLog {
 
     const columnsToSelect = ['messageCid']
     const columnsToFilter = columnsToSelect.slice(0);
-    const conditions = [` tenant = '${quote(tenant)}'`];
+    const conditions = [` tenant = ${quote(tenant)}`];
     const filterConditions: string[] = []
 
     if (cursor) {
@@ -183,7 +182,10 @@ export class EventLogCozo implements EventLog {
       filters.forEach((filter) => {
       const andConditions: string[] = [];
       Object.entries(filter).forEach(([column, value]) => {
-          if(!this.#columns[column]) return;
+          if(!this.#columns[column]) {
+            console.error('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>' , column)
+
+          } 
           columnsToFilter.push(column);
           if (Array.isArray(value)) { // OneOfFilter
           andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
@@ -208,7 +210,7 @@ export class EventLogCozo implements EventLog {
       });
   }
   const hasFilter = filterConditions.length > 0;
-  const query = `?[${columnsToSelect.join(',')}] := *event_log{${columnsToSelect.join(',')}},
+  const query = `?[${columnsToSelect.join(',')}] := *event_log{${columnsToFilter.join(',')}},
   ${conditions.join(',')}
   ${hasFilter ? `, (${filterConditions.join(' or ')} )` : ''}
   ${cursor ? ':order watermark': ''}
@@ -223,7 +225,7 @@ export class EventLogCozo implements EventLog {
       return;
     }
 
-    const deleteLog = await this.runQuery(`?[watermark] := *event_log[id,$tenant,messageCid], messageCid in ['${messageCids.join(',')}'] :rm event_log {watermark}`, {tenant});
+    const deleteLog = await this.runQuery(`?[watermark] := *event_log{watermark,tenant,messageCid},tenant=$tenant, messageCid in ['${messageCids.join(',')}'] :rm event_log {watermark}`, {tenant});
 
     if (!EventLogCozo.isSuccessful(deleteLog)) {
       throw new Error(`Failed to delete events`);

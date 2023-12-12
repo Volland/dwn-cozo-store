@@ -212,10 +212,12 @@ export class MessageStoreCozo implements MessageStore {
       console.log('>>>>>> pagination', pagination);
       conditions.push(`[${sortColumn}, messageCid] ${sortDirection} [ ${wrapStrings(sanitizedValue(sortValue))}, ${wrapStrings(sanitizedValue(cursorMessageCid))}] `);
     }
+    /*
     if(messageSort?.datePublished !== undefined) {
       conditions.push(` published='true' `);
       columnsToFilter.push('published')
     }
+    */
     if (Object.keys(filters).length > 0) {
         filters.forEach((filter) => {
         const andConditions: string[] = [];
