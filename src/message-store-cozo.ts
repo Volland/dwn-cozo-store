@@ -208,8 +208,6 @@ export class MessageStoreCozo implements MessageStore {
             return { messages: [], cursor: undefined };
         }
         const [sortValue, cursorMessageCid] = result.rows[0];
-
-      console.log('>>>>>> pagination', pagination);
       conditions.push(`[${sortColumn}, messageCid] ${sortDirection} [ ${wrapStrings(sanitizedValue(sortValue))}, ${wrapStrings(sanitizedValue(cursorMessageCid))}] `);
     }
     /*
@@ -253,8 +251,6 @@ export class MessageStoreCozo implements MessageStore {
              :order ${orderBy}
              ${pagination?.limit && pagination.limit > 0 ? `:limit ${pagination.limit + 1}` : ''}`
     
-
-    console.log('>>>>>> query', query);   
     const result = await executeUnlessAborted(
       this.runQuery(query),
       options?.signal
