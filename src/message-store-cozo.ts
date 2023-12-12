@@ -251,10 +251,8 @@ export class MessageStoreCozo implements MessageStore {
              :order ${orderBy}
              ${pagination?.limit && pagination.limit > 0 ? `:limit ${pagination.limit + 1}` : ''}`
     
-    if (pagination) {
-        console.log('>>>>>> query', query);
-        console.log('>>>>>> pagination', pagination);
-    }         
+
+    console.log('>>>>>> query', query);   
     const result = await executeUnlessAborted(
       this.runQuery(query),
       options?.signal

@@ -1,11 +1,79 @@
-import { Event, EventLog, GetEventsOptions } from '@tbd54566975/dwn-sdk-js';
+import { EventLog, Filter, GetEventsOptions } from '@tbd54566975/dwn-sdk-js';
 import { CozoResult, ICozoDb } from './types.js';
+import { quote, sanitizeRecords, sanitizedValue, wrapStrings } from './utils/sanitize.js';
 
 export class EventLogCozo implements EventLog {
   #db: ICozoDb;
+  #Indexers =  {
+    interface: 'String?',
+    method: 'String?',
+    schema: 'String?',
+    dataCid: 'String?',
+    dataSize: 'Int?',
+    dateCreated: 'String?',
+    messageTimestamp: 'String?',
+    dataFormat: 'String?',
+    isLatestBaseState: 'String?',
+    published: 'String?',
+    author: 'String?',
+    recordId: 'String?',
+    entryId: 'String?',
+    datePublished: 'String?',
+    latest: 'String?',
+    protocol: 'String?',
+    dateExpires: 'String?',
+    description: 'String?',
+    grantedTo: 'String?',
+    grantedBy: 'String?',
+    grantedFor: 'String?',
+    permissionsRequestId: 'String?',
+    attester: 'String?',
+    protocolPath: 'String?',
+    recipient: 'String?',
+    contextId: 'String?',
+    parentId: 'String?',
+    permissionsGrantId: 'String?',
+}
+#columns = {
+  watermark: 'Int',
+  tenant: 'String',
+  messageCid: 'String',
+  interface: 'String?',
+  method: 'String?',
+  schema: 'String?',
+  dataCid: 'String?',
+  dataSize: 'Int?',
+  dateCreated: 'String?',
+  messageTimestamp: 'String?',
+  dataFormat: 'String?',
+  isLatestBaseState: 'String?',
+  published: 'String?',
+  author: 'String?',
+  recordId: 'String?',
+  entryId: 'String?',
+  datePublished: 'String?',
+  latest: 'String?',
+  protocol: 'String?',
+  dateExpires: 'String?',
+  description: 'String?',
+  grantedTo: 'String?',
+  grantedBy: 'String?',
+  grantedFor: 'String?',
+  permissionsRequestId: 'String?',
+  attester: 'String?',
+  protocolPath: 'String?',
+  recipient: 'String?',
+  contextId: 'String?',
+  parentId: 'String?',
+  permissionsGrantId: 'String?',
+};
+#indexColumnNames = Object.keys(this.#Indexers)
+
   constructor(cozodb: ICozoDb)  {
     this.#db = cozodb;
   }
+
+
   async open(): Promise<void> {
     const existingRelations = await this.getRelations();
     if (!existingRelations.includes('event_log_sequence')) {
@@ -20,10 +88,38 @@ export class EventLogCozo implements EventLog {
     if (!existingRelations.includes('event_log')) {
       await this.runOperation(`
             :create event_log {
-               id: Int
+              watermark: Int
                =>
                tenant: String,
-               messageCid: String
+               messageCid: String,
+               interface: String?,
+               method: String?,
+               schema: String?,
+               dataCid: String?,
+               dataSize: Int?,
+               dateCreated: String?,
+               messageTimestamp: String?,
+               dataFormat: String?,
+               isLatestBaseState: String?,
+               published: String?,
+               author: String?,
+               recordId: String?,
+               entryId: String?,
+               datePublished: String?,
+               latest: String?,
+               protocol: String?,
+               dateExpires: String?,
+               description: String?,
+               grantedTo: String?,
+               grantedBy: String?,
+               grantedFor: String?,
+               permissionsRequestId: String?,
+               attester: String?,
+               protocolPath: String?,
+               recipient: String?,
+               contextId: String?,
+               parentId: String?,
+               permissionsGrantId: String?, 
             }`);
     }
   }
@@ -33,59 +129,110 @@ export class EventLogCozo implements EventLog {
      // this.#db.close();
     }
   }
-  async append(tenant: string, messageCid: string): Promise<string> {
-    const id = await this.getSequence();
-    const result = await this.runQuery(`?[id, tenant, messageCid] <-[[$id, $tenant, $messageCid]] :put event_log{id  => tenant, messageCid}`, {
+  async append(tenant: string, messageCid: string,  indexes: Record<string, string | boolean | number>): Promise<void> {
+    const watermark = await this.getSequence();
+
+    const sanitated = sanitizeRecords(indexes, this.#Indexers);
+    const names = Object.keys(sanitated).sort()
+
+    this.#indexColumnNames.forEach((index) => {
+        if (sanitated[index] === undefined) {
+            sanitated[index] = null;
+        }
+    })
+    const result = await this.runQuery(`?[watermark, tenant, messageCid,  ${names.join(',')}] <-[[$watermark, $tenant, $messageCid, ${names.map(n => '$'+ n).join(',')}]] :put event_log{watermark  => tenant, messageCid,  ${names.join(',')} }`, 
+    {
       tenant,
       messageCid,
-      id,
+      watermark,
 
     });
     if (!EventLogCozo.isSuccessful(result)) {
       throw new Error(`Failed to append event: ${messageCid}`);
     }
 
-    return `${id}`;
+    return 
   }
-  async getEvents(tenant: string, options?: GetEventsOptions | undefined): Promise<Event[]> {
-    let data;
-    if (options && options.gt && !Number.isNaN(Number.parseInt(options.gt)) ) {
-      console.debug('getEvents with gt', options.gt , tenant);
-      const query = `?[id,messageCid] := *event_log[id,$tenant,messageCid],id > $gt`
-      console.log (query)
-      data = await this.runQuery(query, {
-        tenant,
-        gt: Number.parseInt(options.gt),
-      });
-    } else {
-    data = await this.runQuery(`?[id,messageCid] := *event_log[id,$tenant,messageCid]`, {
-      tenant,
-    });
-   } 
-    if (EventLogCozo.isEmpty(data)) {
-      return [];
+  async getEvents(tenant: string, options?: GetEventsOptions | undefined): Promise<string[]> {
+    return this.queryEvents(tenant, [], options?.cursor);
+  }
+  async  queryEvents(tenant: string, filters: Filter[], cursor?: string): Promise<string[]> {
+
+    const columnsToSelect = ['messageCid']
+    const columnsToFilter = columnsToSelect.slice(0);
+    const conditions = [` tenant = '${quote(tenant)}'`];
+    const filterConditions: string[] = []
+
+    if (cursor) {
+      const waterMarkResult = await this.runQuery(
+        `?[watermark]:= *event_log{watermark, tenant, messageCid},tenant=$tenant,messageCid=$cursor :limit 1`,
+        {
+          cursor,
+          tenant
+        }
+      )
+      if (!EventLogCozo.isEmpty(waterMarkResult)) {
+        const watermark = waterMarkResult.rows[0][0]
+        conditions.push( `watermark > '${watermark}'`)
+        columnsToSelect.push('watermark')
+        columnsToFilter.push('watermark')
+      }
+
     }
-    return data.rows.map(([id , messageCid]) => ({
-      watermark  : id.toString(),
-      messageCid : messageCid
-    }));
+    if (Object.keys(filters).length > 0) {
+      filters.forEach((filter) => {
+      const andConditions: string[] = [];
+      Object.entries(filter).forEach(([column, value]) => {
+          if(!this.#columns[column]) return;
+          columnsToFilter.push(column);
+          if (Array.isArray(value)) { // OneOfFilter
+          andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
+          } else if (typeof value === 'object') { // RangeFilter
+          if (value.gt) {
+              andConditions.push(`!is_null(${column}),${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
+          }
+          if (value.gte) {
+              andConditions.push(`!is_null(${column}), ${column} >= ${wrapStrings(sanitizedValue(value.gte))}`);
+          }
+          if (value.lt) {
+              andConditions.push(`!is_null(${column}), ${column} < ${wrapStrings(sanitizedValue(value.lt))}`);
+          }
+          if (value.lte) {
+              andConditions.push(`!is_null(${column}), ${column} <= ${wrapStrings(sanitizedValue(value.lte))}`);
+          }
+          } else { // EqualFilter
+          andConditions.push(`!is_null(${column}), ${column} == ${wrapStrings(sanitizedValue(value))}`);
+          }
+      });
+      filterConditions.push( ` and( ${andConditions.join(',')} ) `);
+      });
   }
-  async  deleteEventsByCid(tenant: string, cids: string[]): Promise<number> {
-    if (cids && cids.length === 0) {
-      return 0;
+  const hasFilter = filterConditions.length > 0;
+  const query = `?[${columnsToSelect.join(',')}] := *event_log{${columnsToSelect.join(',')}},
+  ${conditions.join(',')}
+  ${hasFilter ? `, (${filterConditions.join(' or ')} )` : ''}
+  ${cursor ? ':order watermark': ''}
+  `
+  const result = await this.runQuery(query)
+  return result.rows[0]
+
+  }
+
+  async  deleteEventsByCid(tenant: string, messageCids: string[]): Promise<void> {
+    if (messageCids && messageCids.length === 0) {
+      return;
     }
 
-    const deleteLogCountResult = await this.runQuery(`?[count(id)] := *event_log[id,$tenant,messageCid], messageCid in ['${cids.join(',')}']`, {tenant});
-    const deleteLog = await this.runQuery(`?[id] := *event_log[id,$tenant,messageCid], messageCid in ['${cids.join(',')}'] :rm event_log {id}`, {tenant});
+    const deleteLog = await this.runQuery(`?[watermark] := *event_log[id,$tenant,messageCid], messageCid in ['${messageCids.join(',')}'] :rm event_log {watermark}`, {tenant});
 
     if (!EventLogCozo.isSuccessful(deleteLog)) {
       throw new Error(`Failed to delete events`);
     }
-    return deleteLogCountResult.rows[0][0];
+    return 
 
   }
   async clear(): Promise<void> {
-    const deleteLog = await this.runQuery(`?[id] := *event_log[id,_, _] :rm event_log {id}`);
+    const deleteLog = await this.runQuery(`?[watermark] := *event_log{watermark} :rm event_log {watermark}`);
     if (!EventLogCozo.isSuccessful(deleteLog)) {
       throw new Error(`Failed to clear event log`);
     }

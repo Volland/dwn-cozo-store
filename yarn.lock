@@ -345,10 +345,10 @@
   resolved "https://registry.yarnpkg.com/@sinonjs/text-encoding/-/text-encoding-0.7.2.tgz#5981a8db18b56ba38ef0efb7d995b12aa7b51918"
   integrity sha512-sXXKG+uL9IrKqViTtao2Ws6dy0znu9sOaP1di/jKGW1M6VssO8vlpXCQcpZ+jisQ1tTFAC5Jo/EOzFbggBagFQ==
 
-"@tbd54566975/dwn-sdk-js@^0.2.8":
-  version "0.2.8"
-  resolved "https://registry.yarnpkg.com/@tbd54566975/dwn-sdk-js/-/dwn-sdk-js-0.2.8.tgz#56775b9b8d6e54fb8626af5c53837c05af5b2a53"
-  integrity sha512-oiKk+ekAQO94bUkt6yk+xkDY8uCGmNC+rKaYQLhAoTrhYrczeRSuDT04F5/vPBT5K6NfAoRcQsIyBmvgRCUvgA==
+"@tbd54566975/dwn-sdk-js@^0.2.9":
+  version "0.2.9"
+  resolved "https://registry.yarnpkg.com/@tbd54566975/dwn-sdk-js/-/dwn-sdk-js-0.2.9.tgz#1ee0d61203b858c598413094b690e2a37943f154"
+  integrity sha512-p9wv0GrNq0BgUMvlS54osLKAZE/WhTV89Oh0nvGUk9NH5iwvswlbG4aygw4vDqdVo7XruzfGienW0X/eNWZL0g==
   dependencies:
     "@ipld/dag-cbor" "9.0.3"
     "@js-temporal/polyfill" "0.4.4"
@@ -359,7 +359,6 @@
     blockstore-core "4.2.0"
     cross-fetch "4.0.0"
     eciesjs "0.4.5"
-    flat "5.0.2"
     interface-blockstore "5.2.3"
     interface-store "5.1.2"
     ipfs-unixfs-exporter "13.1.5"
@@ -1222,7 +1221,7 @@ flat-cache@^3.0.4:
     keyv "^4.5.3"
     rimraf "^3.0.2"
 
-flat@5.0.2, flat@^5.0.2:
+flat@^5.0.2:
   version "5.0.2"
   resolved "https://registry.yarnpkg.com/flat/-/flat-5.0.2.tgz#8ca6fe332069ffa9d324c327198c598259ceb241"
   integrity sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==
