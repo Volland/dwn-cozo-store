@@ -224,8 +224,10 @@ export class EventLogCozo implements EventLog {
       return;
     }
 
-    const deleteLog = await this.runQuery(`?[watermark] := *event_log{watermark,tenant,messageCid},tenant=$tenant, messageCid in ['${messageCids.join(',')}'] :rm event_log {watermark}`, {tenant});
+    const deleteLog = await this.runQuery(`?[watermark] := *event_log{watermark,tenant,messageCid},tenant=$tenant, messageCid in ['${messageCids.join("','")}'] :rm event_log {watermark}`,
+     {tenant});
 
+     console.log ('>>>>>>>>> ', {deleteLog} )
     if (!EventLogCozo.isSuccessful(deleteLog)) {
       throw new Error(`Failed to delete events`);
     }
@@ -239,7 +241,7 @@ export class EventLogCozo implements EventLog {
     }
     return Promise.resolve();
   }
-  private async runQuery(query: string, params?: Record<string, any>, print: boolean = true, maxRetries: number = 3) {
+  private async runQuery(query: string, params?: Record<string, any>, print: boolean = false, maxRetries: number = 3) {
     let retries = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
