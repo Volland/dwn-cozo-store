@@ -139,12 +139,12 @@ export class MessageStoreCozo implements MessageStore {
     const sanitated = sanitizeRecords(indexes, this.#Indexes);
 
     this.#indexColumnNames.forEach((index) => {
-        if (sanitated[index] === undefined) {
-            sanitated[index] = null;
-        }
-    })
+      if (sanitated[index] === undefined) {
+        sanitated[index] = null;
+      }
+    });
 
-    const names = Object.keys(sanitated).sort()
+    const names = Object.keys(sanitated).sort();
 
 
     await executeUnlessAborted(
@@ -187,8 +187,8 @@ export class MessageStoreCozo implements MessageStore {
     const columnsToFilter = columnsToSelect.slice(0);
     const conditions = [` tenant = ${quote(tenant)}`];
     const filterConditions: string[] = [];
-    
-    // Sorting Order handling 
+
+    // Sorting Order handling
     const {order , column: sortColumn} = this.getOrderBy(messageSort);
     const sortDirection = order === '-' ? '<' : '>';
     const orderBy = `${order}${sortColumn}, ${order}messageCid`;
@@ -200,14 +200,14 @@ export class MessageStoreCozo implements MessageStore {
 
     if (pagination?.cursor) {
       // TODO : What will happen if cursor gets deleted?
-      const result = await this.runQuery(`?[${sortColumn}, messageCid] := *message_store{messageCid, ${sortColumn}},tenant=$tenant, messageCid=$cursor :limit 1`, {  
+      const result = await this.runQuery(`?[${sortColumn}, messageCid] := *message_store{messageCid, ${sortColumn}},tenant=$tenant, messageCid=$cursor :limit 1`, {
         tenant,
         cursor: pagination.cursor
       });
-       if (MessageStoreCozo.isEmpty(result)) {
-            return { messages: [], cursor: undefined };
-        }
-        const [sortValue, cursorMessageCid] = result.rows[0];
+      if (MessageStoreCozo.isEmpty(result)) {
+        return { messages: [], cursor: undefined };
+      }
+      const [sortValue, cursorMessageCid] = result.rows[0];
       conditions.push(`[${sortColumn}, messageCid] ${sortDirection} [ ${wrapStrings(sanitizedValue(sortValue))}, ${wrapStrings(sanitizedValue(cursorMessageCid))}] `);
     }
     /*
@@ -217,45 +217,44 @@ export class MessageStoreCozo implements MessageStore {
     }
     */
     if (Object.keys(filters).length > 0) {
-        filters.forEach((filter) => {
+      filters.forEach((filter) => {
         const andConditions: string[] = [];
         Object.entries(filter).forEach(([column, value]) => {
-            if(!this.#columns[column]) return;
-            columnsToFilter.push(column);
-            if (Array.isArray(value)) { // OneOfFilter
+          if(!this.#columns[column]) return;
+          columnsToFilter.push(column);
+          if (Array.isArray(value)) { // OneOfFilter
             andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
-            } else if (typeof value === 'object') { // RangeFilter
+          } else if (typeof value === 'object') { // RangeFilter
             if (value.gt) {
-                andConditions.push(`!is_null(${column}),${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
+              andConditions.push(`!is_null(${column}),${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
             }
             if (value.gte) {
-                andConditions.push(`!is_null(${column}), ${column} >= ${wrapStrings(sanitizedValue(value.gte))}`);
+              andConditions.push(`!is_null(${column}), ${column} >= ${wrapStrings(sanitizedValue(value.gte))}`);
             }
             if (value.lt) {
-                andConditions.push(`!is_null(${column}), ${column} < ${wrapStrings(sanitizedValue(value.lt))}`);
+              andConditions.push(`!is_null(${column}), ${column} < ${wrapStrings(sanitizedValue(value.lt))}`);
             }
             if (value.lte) {
-                andConditions.push(`!is_null(${column}), ${column} <= ${wrapStrings(sanitizedValue(value.lte))}`);
+              andConditions.push(`!is_null(${column}), ${column} <= ${wrapStrings(sanitizedValue(value.lte))}`);
             }
-            } else { // EqualFilter
+          } else { // EqualFilter
             andConditions.push(`!is_null(${column}), ${column} == ${wrapStrings(sanitizedValue(value))}`);
-            }
+          }
         });
         filterConditions.push( ` and( ${andConditions.join(',')} ) `);
-        });
+      });
     }
     const hasFilter = filterConditions.length > 0;
     const query = `?[${columnsToSelect.join(',')}] := *message_store{${columnsToFilter.join(',')}},
             ${conditions.join(',')}
             ${hasFilter ? `, (${filterConditions.join(' or ')} )` : ''}
              :order ${orderBy}
-             ${pagination?.limit && pagination.limit > 0 ? `:limit ${pagination.limit + 1}` : ''}`
-    
+             ${pagination?.limit && pagination.limit > 0 ? `:limit ${pagination.limit + 1}` : ''}`;
+
     const result = await executeUnlessAborted(
       this.runQuery(query),
       options?.signal
     );
-
     if (MessageStoreCozo.isEmpty(result)) {
       return { messages: [], cursor: undefined };
     }
@@ -272,16 +271,16 @@ export class MessageStoreCozo implements MessageStore {
     options?.signal?.throwIfAborted();
 
     const result = await executeUnlessAborted(
-        this.runQuery(`?[id] := *message_store{id,tenant, messageCid},tenant=$tenant,messageCid=$cid  :rm message_store {id}`,
-      {
-        tenant,
-        cid,
-      }),
+      this.runQuery(`?[id] := *message_store{id,tenant, messageCid},tenant=$tenant,messageCid=$cid  :rm message_store {id}`,
+        {
+          tenant,
+          cid,
+        }),
       options?.signal
     );
     if (!MessageStoreCozo.isSuccessful(result)) {
-        throw new Error(`Failed to delete message: ${cid}`);
-      }
+      throw new Error(`Failed to delete message: ${cid}`);
+    }
     return Promise.resolve();
 
   }
@@ -389,15 +388,15 @@ export class MessageStoreCozo implements MessageStore {
     messageSort?: MessageSort
   ): {order: string, column: string} {
     if(messageSort?.dateCreated !== undefined)  {
-        return {order: messageSort.dateCreated > 0 ? '': '-', column: `dateCreated`}
-      } else if(messageSort?.datePublished !== undefined) {
-        return {order:messageSort.datePublished > 0 ? '': '-', column: 'datePublished'}
-      } else if (messageSort?.messageTimestamp !== undefined) {
-        return {order: messageSort.messageTimestamp > 0 ? '': '-', column: 'messageTimestamp'}
-      } else {
-        return {order:'', column: 'messageTimestamp'}
-      }
+      return {order: messageSort.dateCreated > 0 ? '': '-', column: `dateCreated`};
+    } else if(messageSort?.datePublished !== undefined) {
+      return {order: messageSort.datePublished > 0 ? '': '-', column: 'datePublished'};
+    } else if (messageSort?.messageTimestamp !== undefined) {
+      return {order: messageSort.messageTimestamp > 0 ? '': '-', column: 'messageTimestamp'};
+    } else {
+      return {order: '', column: 'messageTimestamp'};
     }
+  }
 
   private async getPaginationResults(
     messages: Promise<GenericMessage>[], limit?: number

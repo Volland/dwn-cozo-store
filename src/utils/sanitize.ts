@@ -38,7 +38,7 @@ export function quote(str: string, wrapInQuote: boolean = true): string {
   // Return the quoted string
   return wrapInQuote ? `'${escapedStr}'` : escapedStr;
 }
-export function wrapStrings(value: any, left:string="'", right:string="'"): any {
+export function wrapStrings(value: any, left:string='\'', right:string='\''): any {
   if (typeof value === 'string') {
     return `${left}${value}${right}`;
   } else if (typeof value === 'number' || typeof value === 'boolean') {

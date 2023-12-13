@@ -58,11 +58,7 @@ export class DataStoreCozo implements DataStore {
     return Promise.resolve();
   }
   async put(tenant: string, messageCid: string, dataCid: string, dataStream: Readable): Promise<PutResult> {
-    console.debug('put >>>>>>', {tenant, messageCid, dataCid })
     const data = await DataStream.toBytes(dataStream);
-    const length = data.length
-    console.log('>>>> length', length)
-
     const id = await this.getSequence(this.#relationNames.dataStore);
     const resultDataStore = await this.runQuery(`?[id, tenant, dataCid, data] <-[[$id, $tenant,$dataCid, $data]] :put data_store {id,tenant, dataCid, data }`, {
       id,
@@ -70,7 +66,6 @@ export class DataStoreCozo implements DataStore {
       dataCid,
       data
     });
-    console.debug(resultDataStore)
     if (!DataStoreCozo.isSuccessful(resultDataStore)) {
       throw new Error(`Failed to put data: ${dataCid}`);
     }
@@ -88,8 +83,6 @@ export class DataStoreCozo implements DataStore {
       dataSize : data.length
     };
 
-
-
   }
   async get(tenant: string, messageCid: string, dataCid: string): Promise<GetResult | undefined> {
     console.debug('get', tenant, messageCid, dataCid);
@@ -98,22 +91,17 @@ export class DataStoreCozo implements DataStore {
       dataCid,
       messageCid
     });
-    console.debug('hasReferenceResult', hasReferenceResult);
     const hasResult = !DataStoreCozo.isEmpty(hasReferenceResult);
     if (!hasResult) {
       return undefined;
     }
-    console.debug('2')
     const result = await this.runQuery(`?[dataCid,data] := *data_store[id,tenant, dataCid, data],tenant=$tenant,dataCid=$dataCid :limit 1`, {
       tenant,
       dataCid,
     });
-    console.debug('3', result);
     if (DataStoreCozo.isEmpty(result)) {
-      console.debug('3.1');
       return undefined;
     }
-    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
     const [_dataCid, data] = result.rows[0];
     const resultData = {
       dataCid    : _dataCid,
@@ -124,20 +112,17 @@ export class DataStoreCozo implements DataStore {
           this.push(null);
         }
       }),
-    }
-    console.debug('4', resultData);
+    };
     return resultData ;
 
   }
   async associate(tenant: string, messageCid: string, dataCid: string): Promise<AssociateResult | undefined> {
-    console.log('>>>>> associate ' , {tenant, messageCid, dataCid})
     const hasDataResult = await this.runQuery(`?[id, length] := *data_store[id,tenant, dataCid, data],tenant=$tenant,dataCid=$dataCid,length=length(data) :limit 1`, {
       tenant,
       dataCid,
     });
     const hasdataRecord = !DataStoreCozo.isEmpty(hasDataResult);
     if (!hasdataRecord) {
-      console.log('1')
       return undefined;
     }
     const hasReferenceResult = await this.runQuery(`?[id] := *data_store_references[id,$tenant, $dataCid, $messageCid] :limit 1`, {
@@ -147,23 +132,13 @@ export class DataStoreCozo implements DataStore {
     });
     const hasReferenceRecord = !DataStoreCozo.isEmpty(hasReferenceResult);
     if (!hasReferenceRecord) {
-      console.log('2')
-      const r = await this.runQuery(`?[id, tenant, dataCid, messageCid] <-[[$id, $tenant,$dataCid, $messageCid]] :put data_store_references {id => tenant, dataCid, messageCid }`, {
+      await this.runQuery(`?[id, tenant, dataCid, messageCid] <-[[$id, $tenant,$dataCid, $messageCid]] :put data_store_references {id => tenant, dataCid, messageCid }`, {
         id: await this.getSequence(this.#relationNames.dataStoreReferences),
         tenant,
         dataCid,
         messageCid
       });
-      if (!DataStoreCozo.isSuccessful(r)) {
-        console.error('error')
-      }
     }
-    console.log('>>> assosiate result',
-      {
-        dataCid  : dataCid,
-        dataSize : hasDataResult.rows[0][1]
-      }
-    )
     return {
       dataCid  : dataCid,
       dataSize : hasDataResult.rows[0][1]
@@ -173,7 +148,6 @@ export class DataStoreCozo implements DataStore {
 
   }
   async delete(tenant: string, messageCid: string, dataCid: string): Promise<void> {
-    console.debug('>>>>>>>>>>>>>>>>>>>>> delete', {tenant,messageCid , dataCid})
     const deleteReference = await this.runQuery(`?[id] := *data_store_references[id,$tenant, $dataCid, $messageCid] :rm data_store_references {id}`, {
       tenant,
       dataCid,
@@ -182,14 +156,23 @@ export class DataStoreCozo implements DataStore {
     if (!DataStoreCozo.isSuccessful(deleteReference)) {
       throw new Error(`Failed to delete data: ${dataCid}`);
     }
-    const deleteDataResult = await this.runQuery(`?[id] := *data_store[id,tenant, dataCid, _],tenant=$tenant,dataCid=$dataCid :rm data_store {id}`, {
-      tenant,
-      dataCid,
-    });
-    if (!DataStoreCozo.isSuccessful(deleteDataResult)) {
-      throw new Error(`Failed to delete data: ${dataCid}`);
-    }
 
+    const hasReferenceResult  = await this.runQuery(`?[id] := *data_store_references[id,$tenant, $dataCid, _] :limit 1`,
+      {
+        tenant,
+        dataCid,
+      });
+    const wasLastReference = DataStoreCozo.isEmpty(hasReferenceResult);
+
+    if(wasLastReference) {
+      const deleteDataResult = await this.runQuery(`?[id] := *data_store[id,tenant, dataCid, _],tenant=$tenant,dataCid=$dataCid :rm data_store {id}`, {
+        tenant,
+        dataCid,
+      });
+      if (!DataStoreCozo.isSuccessful(deleteDataResult)) {
+        throw new Error(`Failed to delete data: ${dataCid}`);
+      }
+    }
   }
   async clear(): Promise<void> {
     const deleteReference = await this.runQuery(`?[id] := *data_store_references[id,_, _, _] :rm data_store_references {id}`);

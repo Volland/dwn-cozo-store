@@ -5,7 +5,7 @@ export class TestCozo implements ICozoDb {
   private db: CozoDb;
 
   constructor(db?: CozoDb) {
-    this.db = db || new CozoDb('sqlite', `${Date.now()}-test.db`);
+    this.db = db || new CozoDb('mem');
   }
 
   close(): void {
