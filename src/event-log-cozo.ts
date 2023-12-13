@@ -159,6 +159,7 @@ export class EventLogCozo implements EventLog {
 
     const columnsToSelect = ['messageCid', 'watermark']
     const columnsToFilter = columnsToSelect.slice(0);
+    columnsToFilter.push('tenant')
     const conditions = [` tenant = ${quote(tenant)}`];
     const filterConditions: string[] = []
 
@@ -172,7 +173,7 @@ export class EventLogCozo implements EventLog {
       )
       if (!EventLogCozo.isEmpty(waterMarkResult)) {
         const watermark = waterMarkResult.rows[0][0]
-        conditions.push( `watermark > '${watermark}'`)
+        conditions.push( `watermark > ${watermark}`)
       }
 
     }
@@ -238,7 +239,7 @@ export class EventLogCozo implements EventLog {
     }
     return Promise.resolve();
   }
-  private async runQuery(query: string, params?: Record<string, any>, print: boolean = false, maxRetries: number = 3) {
+  private async runQuery(query: string, params?: Record<string, any>, print: boolean = true, maxRetries: number = 3) {
     let retries = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
