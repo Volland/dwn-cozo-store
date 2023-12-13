@@ -191,7 +191,7 @@ export class MessageStoreCozo implements MessageStore {
     // Sorting Order handling 
     const {order , column: sortColumn} = this.getOrderBy(messageSort);
     const sortDirection = order === '-' ? '<' : '>';
-    const orderBy = `${order}${sortColumn}, messageCid`;
+    const orderBy = `${order}${sortColumn}, ${order}messageCid`;
 
     columnsToSelect.push(sortColumn);
     columnsToFilter.push(sortColumn);
