@@ -26,32 +26,20 @@ I see a few benefits to use Cozo store for your DWNs
 - could be embedded in your app
 
 ## How to use
+
+Install package
+```bash
+npm i dwn-cozo-store
+```
+
 As far as few cozo implementations differ a bit. I create a small interface that make library abstract from cozo build 
-You need to implement this interface for your cozo build and pass it to the store. 
+`ICozoDb` is abstract interface 
+`CozoClosableAdapter` is adapter that implement `ICozoDb` and could be used with any cozo implementation. Make cozo open/close on demand.
 
 In memory example:
 ```ts
-import { CozoDb } from 'cozo-node';
-import { ICozoDb, CozoResult } from '../src/types.js';
-
-export class InMemoryCozo implements ICozoDb {
-  private db: CozoDb;
-
-  constructor(db?: CozoDb) {
-    this.db = db || new CozoDb('mem');
-  }
-
-  close(): void {
-    return this.db.close();
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  run(query: string, params?: Record<string, any>): Promise<CozoResult> {
-    return this.db.run(query, params) as Promise<CozoResult>;
-  }
-}
-
-  const cozo = new InMemoryCozo();
+import { ICozoDb, CozoResult, DataStoreCozo, EventLogCozo, MessageStoreCozo, CozoClosableAdapter  } from 'dwn-cozo-store';
+  const cozo = new CozoClosableAdapter();
   const dataStore = new DataStoreCozo(cozo);
   const eventLog = new EventLogCozo(cozo);
   const messageStore = new MessageStoreCozo(cozo);
@@ -60,108 +48,43 @@ export class InMemoryCozo implements ICozoDb {
 ```
 
 Sqlite example:
+
+```ts
+import { ICozoDb, CozoResult, DataStoreCozo, EventLogCozo, MessageStoreCozo, CozoClosableAdapter  } from 'dwn-cozo-store';
+
+  const cozo = new CozoClosableAdapter('sqllite', 'test.db');
+  const dataStore = new DataStoreCozo(cozo);
+  const eventLog = new EventLogCozo(cozo);
+  const messageStore = new MessageStoreCozo(cozo);
+
+
+```
+
+Also works with Already existing cozo instance
+
+```ts
+import { ICozoDb, CozoResult, DataStoreCozo, EventLogCozo, MessageStoreCozo, CozoClosableAdapter  } from 'dwn-cozo-store';
+import { CozoDb } from 'cozo-node';
+
+const cozo = new CozoClosableAdapter(null, null,{}, new CozoDb());
+const dataStore = new DataStoreCozo(cozo);
+const eventLog = new EventLogCozo(cozo);
+const messageStore = new MessageStoreCozo(cozo);
+
+
+```
+
 Project heavily inspired by [DWN SQL store](https://github.com/TBD54566975/dwn-sql-store) and use a lot of code borrowed from there.
 
-## Store Entity Relation Diagram
 
-```mermaid
-erDiagram
-    data_store_sequence {
-        string table 
-        number counter
-    }
-      event_log_sequence {
-        string table 
-        number counter
-    }
-      message_store_sequence {
-        string table 
-        number counter
-    }
-    event_log {
-        int Id 
-        string tenant
-        string messageCid
-        String interface
-        String method
-        String schema
-        String dataCid
-        Int   dataSize
-        String dateCreated
-        String messageTimestamp
-        String dataFormat
-        String isLatestBaseState
-        String published
-        String author
-        String recordId
-        String entryId 
-        String datePublished
-        String latest
-        String protocol
-        String dateExpires
-        String description
-        String grantedTo
-        String grantedBy
-        String grantedFor
-        String permissionsRequestId
-        String attester
-        String protocolPath
-        String recipient
-        String contextId
-        String parentId
-        String permissionsGrantId
-    }
-    data_store {
-        int id 
-        string tenant
-        string dataCid
-        bytes data
-    }
-    data_store_references {
-        int id 
-        string tenant
-        string dataCid
-        string messageCid
-    }
-    message_store {
-        id id
-        String tenant
-        String messageCid
-        Bytes encodedMessageBytes
-        String encodedData
-        String interface
-        String method
-        String schema
-        String dataCid
-        Int   dataSize
-        String dateCreated
-        String messageTimestamp
-        String dataFormat
-        String isLatestBaseState
-        String published
-        String author
-        String recordId
-        String entryId 
-        String datePublished
-        String latest
-        String protocol
-        String dateExpires
-        String description
-        String grantedTo
-        String grantedBy
-        String grantedFor
-        String permissionsRequestId
-        String attester
-        String protocolPath
-        String recipient
-        String contextId
-        String parentId
-        String permissionsGrantId
-    }
-    event_log ||..|| event_log_sequence : sequence
-    data_store ||..|| data_store_sequence : sequence
-    message_store ||..|| message_store_sequence : sequence
-    data_store ||--|{ data_store_references : references
-    data_store_references }|--|| message_store : messageCid
-    message_store }|--|| event_log : messageCid
+## How to run tests
+
+```bash
+npm run test
 ```
+## Cozo ERD diagram 
+
+Se more in [docs](/docs/store-erd.md)
+
+[![](https://mermaid.ink/img/pako:eNrtVs1uozAQfhXL57YPwDHtdhVpK1VLj0iRY08Sq2CzY7NqGnj3Dj8pAZtqD7ltOSAzf9_M2PPhE5dWAU844IMWexRFZhg9Snixcd4ibBz8qcBIYKde1T7OozZ75sU2BzaKTVVsAZm0lfGAvbw5q-EvGL_J7f5qEQtwTuzhqnl-ZnkZRhvP1oqFccEI4wPxkNe9VqMq7VW6BdwJCYGmAH-woYOTByhEIG73ZxJ_TSn225bqd4jZwz0CvVUEuUv3RdPCi6KMgj1aLIQP63G_KKbzK-Eg9bQMLMpqm2t3iOCKiirGQIwgLap1aE8bg8fJNlwU97wIk3cJhnmh9VbaPBrtx1upEVyoAydRl15bE-hoeGhz1Ytd0qyOS5rHSBtKwEI7R0jud3uynY-0RPi2NsDF6p6FP8Q6rEsNJmyKtJTOWwypFEgOMcWY58-2mrNJMyeS-UDpfx-o4LRvj1R3J14A2yDsAFs6cNfEXRjwAX7CRxNYxSJcMAdNl9lj1dVL5RBZq6feoJNFhqSzefhszTf5fJPP_0o-48-8ru_u6jp2B0nYeRkQ1uAUuwvNvaajPzgu3E--RLy9rU8LPJaw8eMrvmvaIDN0cp7zylQ_OI0du3TgN7ygTgtaJbzjtYx7ogbIeEJLJfA145lpyI7myqZHI3myE7mDG16V7ZkeLpeDtPkADV9Vfg?type=png)](https://mermaid.live/edit#pako:eNrtVs1uozAQfhXL57YPwDHtdhVpK1VLj0iRY08Sq2CzY7NqGnj3Dj8pAZtqD7ltOSAzf9_M2PPhE5dWAU844IMWexRFZhg9Snixcd4ibBz8qcBIYKde1T7OozZ75sU2BzaKTVVsAZm0lfGAvbw5q-EvGL_J7f5qEQtwTuzhqnl-ZnkZRhvP1oqFccEI4wPxkNe9VqMq7VW6BdwJCYGmAH-woYOTByhEIG73ZxJ_TSn225bqd4jZwz0CvVUEuUv3RdPCi6KMgj1aLIQP63G_KKbzK-Eg9bQMLMpqm2t3iOCKiirGQIwgLap1aE8bg8fJNlwU97wIk3cJhnmh9VbaPBrtx1upEVyoAydRl15bE-hoeGhz1Ytd0qyOS5rHSBtKwEI7R0jud3uynY-0RPi2NsDF6p6FP8Q6rEsNJmyKtJTOWwypFEgOMcWY58-2mrNJMyeS-UDpfx-o4LRvj1R3J14A2yDsAFs6cNfEXRjwAX7CRxNYxSJcMAdNl9lj1dVL5RBZq6feoJNFhqSzefhszTf5fJPP_0o-48-8ru_u6jp2B0nYeRkQ1uAUuwvNvaajPzgu3E--RLy9rU8LPJaw8eMrvmvaIDN0cp7zylQ_OI0du3TgN7ygTgtaJbzjtYx7ogbIeEJLJfA145lpyI7myqZHI3myE7mDG16V7ZkeLpeDtPkADV9Vfg)
+
