@@ -7,7 +7,7 @@
   },
   "include": [
     "../src",
-    ".", "", "../benchmarks",
+    ".", "",
   ],
   "exclude": [
     "./compiled"
