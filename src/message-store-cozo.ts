@@ -7,7 +7,7 @@ import * as cbor from '@ipld/dag-cbor';
 
 export class MessageStoreCozo implements MessageStore {
   #db: ICozoDb;
-  db: any;
+  #isClosed = false;
   constructor(cozodb: ICozoDb)  {
     this.#db = cozodb;
   }
@@ -52,6 +52,10 @@ export class MessageStoreCozo implements MessageStore {
   #indexColumnNames = Object.keys(this.#Indexes);
 
   async open(): Promise<void> {
+    if (this.#isClosed && this.#db.open) {
+      this.#db = this.#db.open();
+      this.#isClosed = false;
+    }
     const existingRelations = await this.getRelations();
     if (!existingRelations.includes('message_store_sequence')) {
       await this.runOperation(`
@@ -105,8 +109,14 @@ export class MessageStoreCozo implements MessageStore {
     return Promise.resolve();
   }
   close(): Promise<void> {
-    console.debug('Closing Cozo DB');
-    //this.#db!.close!();
+    if(this.#isClosed) {
+      return Promise.resolve();
+    }
+    if (this.#db && this.#db.close) {
+      console.debug('Closing Cozo DB');
+      this.#db?.close();
+    }
+    this.#isClosed = true;
     return Promise.resolve();
   }
   async put(tenant: string, message: GenericMessage, indexes: { [key: string]: string | boolean; }, options?: MessageStoreOptions | undefined): Promise<void> {
