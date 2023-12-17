@@ -10,12 +10,17 @@ export class DataStoreCozo implements DataStore {
     dataStoreSequence   : 'data_store_sequence',
 
   };
+  #isClosed = false;
 
   constructor(cozodb: ICozoDb)  {
     this.#db = cozodb;
   }
 
   async open(): Promise<void> {
+    if (this.#isClosed && this.#db.open) {
+      this.#db = this.#db.open();
+      this.#isClosed = false;
+    }
     const existingRelations = await this.getRelations();
     if (!existingRelations.includes(this.#relationNames.dataStoreSequence)) {
       await this.runOperation(`
@@ -48,13 +53,17 @@ export class DataStoreCozo implements DataStore {
             }`);
     }
 
-
   }
+
   close(): Promise<void> {
+    if(this.#isClosed) {
+      return Promise.resolve();
+    }
     if (this.#db && this.#db.close) {
       console.debug('Closing Cozo DB');
-      //this.#db.close();
+      this.#db?.close();
     }
+    this.#isClosed = true;
     return Promise.resolve();
   }
   async put(tenant: string, messageCid: string, dataCid: string, dataStream: Readable): Promise<PutResult> {

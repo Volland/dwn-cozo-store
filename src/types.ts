@@ -3,6 +3,7 @@ export interface ICozoDbQuery {
 }
 export interface ICozoDb extends ICozoDbQuery {
     close?(): void;
+    open?(): ICozoDb;
     importRelations?(data: object): Promise<any>;
     exportRelations?(relations: string[]): Promise<any>;
 }
