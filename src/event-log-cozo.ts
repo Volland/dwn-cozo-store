@@ -68,6 +68,7 @@ export class EventLogCozo implements EventLog {
     permissionsGrantId   : 'String?',
   };
   #indexColumnNames = Object.keys(this.#Indexers);
+  #isClosed = false;
 
   constructor(cozodb: ICozoDb)  {
     this.#db = cozodb;
@@ -75,6 +76,10 @@ export class EventLogCozo implements EventLog {
 
 
   async open(): Promise<void> {
+    if (this.#isClosed && this.#db.open) {
+      this.#db = this.#db.open();
+      this.#isClosed = false;
+    }
     const existingRelations = await this.getRelations();
     if (!existingRelations.includes('event_log_sequence')) {
       await this.runOperation(`
@@ -124,10 +129,15 @@ export class EventLogCozo implements EventLog {
     }
   }
   async close(): Promise<void> {
-    if (this.#db.close) {
-      console.debug('Closing Cozo DB');
-      // this.#db.close();
+    if(this.#isClosed) {
+      return Promise.resolve();
     }
+    if (this.#db && this.#db.close) {
+      console.debug('Closing Cozo DB');
+      this.#db?.close();
+    }
+    this.#isClosed = true;
+    return Promise.resolve();
   }
   async append(tenant: string, messageCid: string,  indexes: Record<string, string | boolean | number>): Promise<void> {
     const watermark = await this.getSequence();
