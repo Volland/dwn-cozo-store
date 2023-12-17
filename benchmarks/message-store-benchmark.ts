@@ -1,9 +1,7 @@
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
 
 import { GenericMessage, MessageStore, SortDirection } from '@tbd54566975/dwn-sdk-js';
-const { TestDataGenerator } = require('@tbd54566975/dwn-sdk-js/dist/esm/tests/utils/test-data-generator.js');
-const { Time } = require('@tbd54566975/dwn-sdk-js/dist/esm/src/utils/time.js');
+import  { TestDataGenerator } from '@tbd54566975/dwn-sdk-js/dist/esm/tests/utils/test-data-generator.js';
+import  { Time } from '@tbd54566975/dwn-sdk-js/dist/esm/src/utils/time.js';
 
 interface BenchMarkResults {
   create: number;
@@ -241,7 +239,7 @@ export const runMessageStoreBenchmark = async (messageStore: MessageStore , item
   const queryRangeEnd = Date.now();
   console.log('\tquery - range\t\t\t:', queryRangeEnd - queryRangeStart, 'ms');
   console.log('\t\tresults count\t\t:', messages.length);
-  benchMarkResults.queryRange = queryRangeEnd - queryRangeStart;
+ benchMarkResults.queryRange = queryRangeEnd - queryRangeStart;
 
   // larger result set
   const queryEqualStart = Date.now();
