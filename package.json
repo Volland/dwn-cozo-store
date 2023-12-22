@@ -1,6 +1,6 @@
 {
   "name": "dwn-cozo-store",
-  "version": "0.0.5",
+  "version": "0.0.9",
   "type": "module",
   "description": "dwn cozo store ",
   "repository": {
@@ -17,6 +17,10 @@
     "require": "./dist/cjs/main.js",
     "types": "./dist/types/src/main.d.ts"
   },
+  "files": [
+    "dist",
+    "src"
+  ],
   "react-native": "./dist/esm/src/main.js",
   "scripts": {
     "build:esm": "yarn run clean & tsc",
@@ -45,7 +49,7 @@
   },
   "dependencies": {
     "@ipld/dag-cbor": "^9.0.6",
-    "@tbd54566975/dwn-sdk-js": "^0.2.9",
+    "@tbd54566975/dwn-sdk-js": "0.2.9",
     "multiformats": "^12.1.3",
     "readable-stream": "^4.4.2",
     "cozo-node": "^0.7.5"
