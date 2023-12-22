@@ -233,7 +233,7 @@ export class MessageStoreCozo implements MessageStore {
           if(!this.#columns[column]) return;
           columnsToFilter.push(column);
           if (Array.isArray(value)) { // OneOfFilter
-            andConditions.push(`${column} in [${value.map(v => quote(`${v}`, true)).join(',')}]`);
+            andConditions.push(`!is_null(${column}), is_in(${column}, [${value.map(v => quote(`${v}`, true)).join(',')}])`);
           } else if (typeof value === 'object') { // RangeFilter
             if (value.gt) {
               andConditions.push(`!is_null(${column}),${column} > ${wrapStrings(sanitizedValue(value.gt))}`);
