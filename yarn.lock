@@ -240,7 +240,7 @@
   resolved "https://registry.npmjs.org/@sinonjs/text-encoding/-/text-encoding-0.7.2.tgz"
   integrity sha512-sXXKG+uL9IrKqViTtao2Ws6dy0znu9sOaP1di/jKGW1M6VssO8vlpXCQcpZ+jisQ1tTFAC5Jo/EOzFbggBagFQ==
 
-"@tbd54566975/dwn-sdk-js@^0.2.9":
+"@tbd54566975/dwn-sdk-js@0.2.9":
   version "0.2.9"
   resolved "https://registry.npmjs.org/@tbd54566975/dwn-sdk-js/-/dwn-sdk-js-0.2.9.tgz"
   integrity sha512-p9wv0GrNq0BgUMvlS54osLKAZE/WhTV89Oh0nvGUk9NH5iwvswlbG4aygw4vDqdVo7XruzfGienW0X/eNWZL0g==
